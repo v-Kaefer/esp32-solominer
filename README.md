@@ -22,3 +22,40 @@ To configure your WiFi credentials:
 3. The `config.h` file is gitignored to prevent accidentally committing your credentials.
 
 Note: Never commit your `main/config.h` file with real credentials to version control.
+
+## Performance Benchmarking
+
+This project includes a comprehensive performance benchmarking system to identify optimization opportunities and track improvements.
+
+### Features
+
+- Automated GitHub Actions workflow for performance analysis
+- Reusable benchmark component for ESP32
+- Identification of performance-critical functions
+- Statistical analysis (min, max, average execution times)
+
+### Key Functions Monitored
+
+1. **double_sha256()** - Bitcoin double SHA-256 hashing
+2. **count_leading_zeros()** - Difficulty calculation
+3. **mining_task()** - Main mining loop
+
+For detailed information, see [BENCHMARKING.md](BENCHMARKING.md)
+
+### Quick Start
+
+To use benchmarking in your code:
+
+```c
+#include "benchmark.h"
+
+benchmark_init();
+
+BENCHMARK("my_function", {
+    my_function();
+});
+
+benchmark_print_all();
+```
+
+See `examples/benchmark_integration_example.c` for more examples.
