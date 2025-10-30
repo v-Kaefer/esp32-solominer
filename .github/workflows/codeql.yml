@@ -28,12 +28,32 @@ jobs:
         languages: cpp
         queries: security-and-quality
     
-    - name: Setup ESP-IDF for CodeQL
-      uses: espressif/esp-idf-ci-action@v1
+    - name: Install ESP-IDF prerequisites
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y git wget flex bison gperf python3 python3-pip python3-venv cmake ninja-build ccache libffi-dev libssl-dev dfu-util libusb-1.0-0
+    
+    - name: Cache ESP-IDF
+      uses: actions/cache@v4
+      id: cache-esp-idf
       with:
-        esp_idf_version: v5.1.2
-        target: esp32s3
-        path: '.'
+        path: |
+          ~/esp/esp-idf
+          ~/.espressif
+        key: esp-idf-v5.1.2-esp32s3-${{ runner.os }}
+    
+    - name: Clone ESP-IDF
+      if: steps.cache-esp-idf.outputs.cache-hit != 'true'
+      run: |
+        mkdir -p ~/esp
+        cd ~/esp
+        git clone --recursive --depth 1 --branch v5.1.2 https://github.com/espressif/esp-idf.git
+    
+    - name: Install ESP-IDF toolchain
+      if: steps.cache-esp-idf.outputs.cache-hit != 'true'
+      run: |
+        cd ~/esp/esp-idf
+        ./install.sh esp32s3
     
     - name: Create config.h from example
       run: |
@@ -41,7 +61,7 @@ jobs:
     
     - name: Build project for CodeQL
       run: |
-        . $IDF_PATH/export.sh
+        . ~/esp/esp-idf/export.sh
         idf.py set-target esp32s3
         idf.py build
     
