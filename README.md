@@ -24,9 +24,22 @@ Project first auto build for ESP32, then changed to ESP32S3 (via ESP-PROG).
 
 This project includes auto-generated documentation using Doxygen.
 
-### Generating Documentation
+### Quick Start
 
-To generate the HTML documentation:
+The easiest way to generate documentation is to use the provided script:
+
+```bash
+./generate_docs.sh
+```
+
+This script will:
+1. Check if Doxygen and Graphviz are installed
+2. Generate the documentation
+3. Optionally open it in your browser
+
+### Manual Documentation Generation
+
+To generate the HTML documentation manually:
 
 ```bash
 doxygen Doxyfile
@@ -60,6 +73,15 @@ brew install doxygen graphviz
 
 **Windows:**
 Download from [doxygen.nl](https://www.doxygen.nl/download.html)
+
+### Automated Documentation via GitHub Actions
+
+Documentation is automatically generated and published to GitHub Pages when code is pushed to the main branch. The workflow:
+- Builds documentation on every push and pull request
+- Deploys to GitHub Pages for the main branch
+- Archives documentation as workflow artifacts
+
+You can access the live documentation at: `https://<username>.github.io/<repository>/`
 
 ## Building the Project
 
