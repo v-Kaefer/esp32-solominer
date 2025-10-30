@@ -78,3 +78,5 @@
 
 '🤖 copilot':
   - head-branch: ['^copilot/']
+  - changed-files:
+    - any-glob-to-any-file: ['.github/agents/**/*', '**/.copilot*', '**/copilot.yml', '**/copilot.yaml', '**/*copilot*']
