@@ -33,7 +33,7 @@ jobs:
       run: |
         . $IDF_PATH/export.sh
         idf.py set-target esp32s3
-        idf.py build
+        idf.py -DCMAKE_C_FLAGS="-DWIFI_SSID='\"test_ssid\"' -DWIFI_PASS='\"test_password\"'" build
     
     - name: Archive build artifacts
       if: success()
