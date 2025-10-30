@@ -18,7 +18,7 @@
 #include "driver/i2c.h"
 #include "driver/gpio.h"
 #include "esp_log.h"
-#include ".env"
+#include "../.env"
 
 
 // WiFi Configuration
