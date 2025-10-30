@@ -6,3 +6,5 @@ sdkconfig.old
 .qodo
 .vscode
 main/config.h
+benchmark_report.md
+*.benchmark
