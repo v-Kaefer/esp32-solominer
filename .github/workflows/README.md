@@ -6,37 +6,34 @@ This directory contains the CI/CD workflows for the ESP32 Solo Miner project.
 
 ### 1. Build and Security Analysis (`build-and-analyze.yml`)
 **Triggers:** Push to main, Pull requests to main, Weekly schedule (Mondays)
-**Purpose:** Compiles the ESP32-S3 project and performs CodeQL security analysis
+**Purpose:** Orchestrates build and security analysis by calling modular workflows
 
 **What it does:**
-- Sets up ESP-IDF environment with caching for faster runs
-- Initializes CodeQL for security scanning
+- Calls the Build workflow (build.yml) to compile the project
+- Calls the CodeQL workflow (codeql.yml) to perform security analysis
+- Keeps workflows modular and reusable
+
+### 2. Build Workflow (`build.yml`)
+**Triggers:** Push to main, Pull requests to main, Called by other workflows
+**Purpose:** Compiles the ESP32-S3 project using ESP-IDF v5.1.2
+
+**What it does:**
+- Sets up ESP-IDF environment
 - Creates config.h from example template
 - Builds the project for ESP32-S3 target
 - Archives build artifacts (binaries, ELF, map files)
+
+### 3. CodeQL Security Analysis (`codeql.yml`)
+**Triggers:** Push to main, Pull requests to main, Weekly schedule (Mondays), Called by other workflows
+**Purpose:** Scans for security vulnerabilities
+
+**What it does:**
+- Initializes CodeQL for security scanning
+- Sets up ESP-IDF environment
+- Builds the project for analysis
 - Performs security-focused code analysis
 - Detects common vulnerabilities (buffer overflows, etc.)
 - Creates security alerts in GitHub Security tab
-
-### 2. Auto Tag Firmware Releases (`auto-tag.yml`)
-**Triggers:** Push to main/develop/release, Pull requests, Manual dispatch
-**Purpose:** Automatically creates version tags for firmware releases
-
-**What it does:**
-- Auto-creates tags from VERSION file on push
-- Allows manual tag creation via workflow dispatch
-- Validates tag uniqueness
-- Pushes tags to repository
-
-### 3. PR Labeler (`labeler.yml`)
-**Triggers:** Pull requests (opened, synchronized, reopened)
-**Purpose:** Automatically labels pull requests based on changed files and branch names
-
-**What it does:**
-- Labels PRs based on file changes (firmware, mining, display, networking, etc.)
-- Labels PRs based on branch prefixes (feature/, fix/, hotfix/, etc.)
-- Syncs label colors with .github/labels.json
-- Provides labeling summary
 
 ### 4. Static Analysis (`static-analysis.yml`)
 **Triggers:** Push to main, Pull requests to main

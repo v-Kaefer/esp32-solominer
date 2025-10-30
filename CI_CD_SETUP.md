@@ -5,12 +5,11 @@ This repository uses GitHub Actions for continuous integration and continuous de
 ## 🚀 Quick Start
 
 When you create a pull request, the following checks will run automatically:
-1. 🏷️ **PR Labeler** - Automatically labels your PR based on changes
-2. ✅ **Build & Security Analysis** - Compiles your code for ESP32-S3 and analyzes for vulnerabilities
-3. 🔍 **Static Analysis** - Checks for common bugs and code issues
-4. 📝 **Code Quality** - Validates formatting and best practices
-5. 🧪 **Test Coverage** - Suggests tests for new features
-6. 📚 **Documentation** - Checks if docs need updating
+1. ✅ **Build & Security Analysis** - Compiles your code for ESP32-S3 and analyzes for vulnerabilities
+2. 🔍 **Static Analysis** - Checks for common bugs and code issues
+3. 📝 **Code Quality** - Validates formatting and best practices
+4. 🧪 **Test Coverage** - Suggests tests for new features
+5. 📚 **Documentation** - Checks if docs need updating
 
 ## 📊 Workflow Status
 
@@ -19,23 +18,23 @@ All workflow statuses can be viewed in the [Actions tab](../../actions).
 ## 🛠️ Workflows Overview
 
 ### Build and Security Analysis
-Compiles the project using ESP-IDF v5.1.2 for ESP32-S3 target and performs CodeQL security analysis.
+Orchestrates build and security analysis by calling modular workflows.
 - Runs on: Push to main, Pull requests, Weekly (Monday)
-- Duration: ~10-15 minutes
+- Duration: ~10-15 minutes (runs Build and CodeQL workflows)
 - Artifacts: Build binaries (30 days)
 - Results: GitHub Security tab
 
-### Auto Tag Firmware Releases
-Automatically creates version tags for firmware releases.
-- Runs on: Push to main/develop/release, Pull requests, Manual dispatch
-- Duration: ~1 minute
-- Purpose: Version management and release tagging
+### Build Workflow
+Compiles the project using ESP-IDF v5.1.2 for ESP32-S3 target.
+- Runs on: Push to main, Pull requests, Called by other workflows
+- Duration: ~5-10 minutes
+- Artifacts: Build binaries (30 days)
 
-### PR Labeler
-Automatically labels pull requests based on files changed and branch names.
-- Runs on: Pull requests (opened, synchronized, reopened)
-- Duration: ~30 seconds
-- Purpose: Automatic PR categorization
+### CodeQL Security Analysis
+Performs security-focused code analysis.
+- Runs on: Push to main, Pull requests, Weekly (Monday), Called by other workflows
+- Duration: ~10-15 minutes
+- Results: GitHub Security tab
 
 ### Static Analysis
 Uses cppcheck to find potential issues in C code.
