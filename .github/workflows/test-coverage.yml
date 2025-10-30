@@ -2,7 +2,7 @@ name: Test Coverage Check
 
 on:
   pull_request:
-    branches: [ main ]
+    branches: [ main, develop ]
     paths:
       - 'main/*.c'
       - 'main/*.h'
