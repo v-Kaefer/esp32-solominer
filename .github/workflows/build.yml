@@ -32,13 +32,10 @@ jobs:
     - name: Build project
       run: |
         . $IDF_PATH/export.sh
+        export CI_WIFI_SSID="test_ssid"
+        export CI_WIFI_PASS="test_password"
         idf.py set-target esp32s3
         idf.py build
-      env:
-        # Pass WiFi credentials as environment variables for CI build
-        # These override the placeholder values in config.h via CMakeLists.txt
-        CI_WIFI_SSID: "test_ssid"
-        CI_WIFI_PASS: "test_password"
     
     - name: Archive build artifacts
       if: success()
