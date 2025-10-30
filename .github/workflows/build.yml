@@ -25,15 +25,9 @@ jobs:
         target: esp32s3
         path: '.'
     
-    - name: Create config.h from example
-      run: |
-        cp main/config.h.example main/config.h
-    
     - name: Build project
       run: |
         . $IDF_PATH/export.sh
-        export CI_WIFI_SSID="test_ssid"
-        export CI_WIFI_PASS="test_password"
         idf.py set-target esp32s3
         idf.py build
     
