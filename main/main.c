@@ -13,11 +13,8 @@
 #include "lwip/sys.h"
 #include "mbedtls/md.h"
 #include "driver/i2c.h"
-#include "ssd1306.h"
-
-#include "driver/i2c.h"
 #include "driver/gpio.h"
-#include "esp_log.h"
+#include "ssd1306.h"
 #include "config.h"
 
 // I2C Configuration for OLED
