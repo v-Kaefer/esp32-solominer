@@ -25,20 +25,11 @@ jobs:
         target: esp32s3
         path: '.'
     
-    - name: Create config.h from example
-      run: |
-        cp main/config.h.example main/config.h
-    
     - name: Build project
       run: |
         . $IDF_PATH/export.sh
         idf.py set-target esp32s3
         idf.py build
-      env:
-        # Pass WiFi credentials as environment variables for CI build
-        # These override the placeholder values in config.h via CMakeLists.txt
-        CI_WIFI_SSID: "test_ssid"
-        CI_WIFI_PASS: "test_password"
     
     - name: Archive build artifacts
       if: success()

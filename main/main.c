@@ -37,6 +37,10 @@ static uint8_t block_header[80];
 // OLED device handle
 static SSD1306_t dev;
 
+// WiFi code is only compiled when WIFI_SSID is defined (i.e., when config.h exists)
+// This allows CI/CD builds to succeed without WiFi credentials
+#ifdef WIFI_SSID
+
 // WiFi event handler
 static void wifi_event_handler(void* arg, esp_event_base_t event_base,
                               int32_t event_id, void* event_data)
@@ -88,6 +92,8 @@ void wifi_init(void)
 
     ESP_LOGI(TAG, "WiFi init finished.");
 }
+
+#endif // WIFI_SSID
 
 // Initialize I2C for OLED
 esp_err_t i2c_master_init(void)

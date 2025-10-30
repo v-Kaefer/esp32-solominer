@@ -20,7 +20,7 @@ This is a learning project focused on:
 
 ## WiFi Configuration
 
-To configure your WiFi credentials:
+To configure your WiFi credentials for local development:
 
 1. Copy the example configuration file:
    ```bash
@@ -37,17 +37,9 @@ To configure your WiFi credentials:
 
 **Note:** Never commit your `main/config.h` file with real credentials to version control.
 
-### CI/CD WiFi Configuration
+### CI/CD Builds
 
-For automated builds in CI/CD environments, WiFi credentials can be passed as environment variables:
-
-```bash
-export CI_WIFI_SSID="test_ssid"
-export CI_WIFI_PASS="test_password"
-idf.py build
-```
-
-The build system will automatically use these environment variables to define the WiFi credentials during compilation, overriding the placeholder values in `config.h`.
+CI/CD builds automatically skip WiFi functionality since `config.h` is not committed to the repository for security reasons. The WiFi code is conditionally compiled only when `WIFI_SSID` is defined (which comes from your local `config.h` file created from `config.h.example`). This allows automated builds to succeed without requiring WiFi credentials.
 
 ## Build Instructions
 
