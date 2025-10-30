@@ -14,29 +14,38 @@
 - **Interface**: I2C
 - **I2C Address**: 0x3C
 
-### GPIO Configuration (CRITICAL - Board has incorrect silkscreen)
+### GPIO Configuration
 
-**⚠️ IMPORTANT**: The physical board silkscreen is INCORRECT. Always use the following verified GPIO mappings:
+**Standard ESP32-S3 GPIO Guidelines** (refer to official documentation):
+- Follow the [ESP32-S3 Datasheet](https://documentation.espressif.com/esp32-s3_datasheet_en.pdf) for standard GPIO pinout and functionality
+- GPIO numbering should match the official ESP32-S3-WROOM-1 module pin assignments
+
+**⚠️ CURRENT BOARD-SPECIFIC NOTE** (Low-quality burn board with incorrect silkscreen):
+
+The current development board has mislabeled pins. This is specific to this low-quality board and will be replaced with proper documentation when using a standard board.
 
 ```c
-// Correct GPIO mapping (verified through hardware testing)
-#define I2C_MASTER_SDA_IO    15    // Physical board label shows "GPIO07" but actual GPIO is 15
-#define I2C_MASTER_SCL_IO    9     // Physical board label shows "GPIO09" but actual GPIO is 9
+// TEMPORARY: Verified GPIO mapping for current low-quality board
+// NOTE: Board silkscreen labels are INCORRECT - these are the actual working pins
+#define I2C_MASTER_SDA_IO    15    // Board incorrectly labels this as "GPIO07"
+#define I2C_MASTER_SCL_IO    9     // Board incorrectly labels this as "GPIO09"
 #define I2C_MASTER_NUM       I2C_NUM_0
 #define I2C_MASTER_FREQ_HZ   100000  // 100 kHz - stable and tested
 ```
 
-**DO NOT use GPIO 7 and GPIO 9 as labeled on the board** - they will not work with the I2C display.
+When using a proper development board, follow the standard GPIO assignments from the official ESP32-S3 documentation.
 
 ### GPIO Usage Guidelines for ESP32-S3
 
-**Reserved/Strapping Pins** (avoid using or be cautious):
+Refer to the official [ESP32-S3 Datasheet](https://documentation.espressif.com/esp32-s3_datasheet_en.pdf) for complete GPIO specifications.
+
+**Reserved/Strapping Pins** (from official documentation - avoid using or be cautious):
 - GPIO0: Strapping pin (boot mode selection)
 - GPIO45, GPIO46: Strapping pins
 - GPIO19, GPIO20: USB D-, D+ (avoid if USB is needed)
 
-**Safe GPIOs for general use**:
-- GPIO1-18, GPIO21 (excluding GPIO0, GPIO19, GPIO20 for USB, and I2C pins GPIO9, GPIO15 already in use)
+**Safe GPIOs for general use** (per ESP32-S3 specifications):
+- GPIO1-18, GPIO21 (excluding GPIO0, GPIO19, GPIO20 for USB, and I2C pins GPIO9, GPIO15 currently in use)
 
 ## Development Environment
 
@@ -203,7 +212,9 @@ if (nonce % 1000 == 0) {
 ## Common Pitfalls and Solutions
 
 ### Issue: Display not responding on I2C
-**Solution**: Verify GPIO pins match the tested configuration (SDA=15, SCL=9), not the board silkscreen.
+**Solution**: 
+- For standard boards: Follow the GPIO assignments from the ESP32-S3 datasheet
+- For current low-quality board: Verify GPIO pins match the tested configuration (SDA=15, SCL=9), not the board silkscreen labels
 
 ### Issue: `i2c driver install error`
 **Solution**: Call `i2c_driver_delete()` before reinstalling the driver.
@@ -277,11 +288,11 @@ esp32-solominer/
 1. **Always reference official ESP32-S3 documentation** for hardware-specific features
 2. **Test on actual hardware** - simulators may not catch I2C or GPIO issues
 3. **Check ESP-IDF version compatibility** - APIs may change between versions
-4. **Document hardware quirks** - like the GPIO mislabeling on this board
+4. **Document hardware quirks** - the current low-quality board has mislabeled GPIO pins (to be replaced with proper board)
 5. **Use appropriate delays** - hardware needs time to respond
 6. **Monitor memory usage** - ESP32-S3 has limited RAM
 7. **Test WiFi separately** from other peripherals to isolate issues
-8. **Preserve working I2C configuration** - GPIO 15 (SDA) and GPIO 9 (SCL) are verified working
+8. **Follow official GPIO pinout** - use ESP32-S3 datasheet as the primary reference for pin assignments
 
 ## Component Dependencies
 
