@@ -18,6 +18,20 @@ This is a learning project focused on:
 - Ensuring safety, privacy, and modularity
 - Building an ESP32 Bitcoin miner from scratch
 
+## 📚 Mining Strategy Documentation
+
+**New to ESP32 Bitcoin mining? Start here:**
+
+- **[Quick Start Guide](MINING_QUICKSTART.md)** - Get mining in 5 minutes
+- **[Comprehensive Mining Strategies](ESP32_MINING_STRATEGIES.md)** - Deep dive into mining approaches, hardware optimization, and cooling requirements
+
+These guides cover:
+- Multiple mining approaches (NerdMiner, NMMiner, LeafMiner)
+- Hardware specifications and cooling requirements
+- Performance benchmarks and expectations
+- Thermal management and active cooling recommendations
+- Optimization techniques and troubleshooting
+
 ## WiFi Configuration
 
 To configure your WiFi credentials for local development:
