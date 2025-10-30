@@ -33,9 +33,12 @@ jobs:
       run: |
         . $IDF_PATH/export.sh
         idf.py set-target esp32s3
-        # Pass WiFi credentials as compiler definitions for CI build
-        # This allows the build to succeed without exposing real credentials
-        idf.py -DCMAKE_C_FLAGS='-DWIFI_SSID=\"test_ssid\" -DWIFI_PASS=\"test_password\"' build
+        idf.py build
+      env:
+        # Pass WiFi credentials as environment variables for CI build
+        # These override the placeholder values in config.h via CMakeLists.txt
+        CI_WIFI_SSID: "test_ssid"
+        CI_WIFI_PASS: "test_password"
     
     - name: Archive build artifacts
       if: success()
