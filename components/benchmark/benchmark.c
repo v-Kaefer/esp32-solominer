@@ -3,6 +3,7 @@
 #include "esp_log.h"
 #include <string.h>
 #include <math.h>
+#include <inttypes.h>
 
 #define MAX_BENCHMARKS 16
 #define TAG "BENCHMARK"
@@ -118,7 +119,7 @@ void benchmark_print_all(void)
         if (benchmarks[i].active && benchmarks[i].total_iterations > 0) {
             double avg = (double)benchmarks[i].total_time_us / benchmarks[i].total_iterations;
             
-            ESP_LOGI(TAG, "%-20s %10llu %12llu %12llu %12llu %12.2f",
+            ESP_LOGI(TAG, "%-20s %10" PRIu64 " %12" PRIu64 " %12" PRIu64 " %12" PRIu64 " %12.2f",
                      benchmarks[i].name,
                      benchmarks[i].total_iterations,
                      benchmarks[i].total_time_us,

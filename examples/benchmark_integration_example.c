@@ -3,13 +3,17 @@
  * 
  * This example shows how to use the benchmark component to measure
  * performance of key mining functions.
+ * 
+ * Note: This is an example file demonstrating usage. In a real implementation,
+ * these function declarations would be in a proper header file.
  */
 
 #include "benchmark.h"
-#include "mbedtls/md.h"
 #include <string.h>
+#include <inttypes.h>
 
-// Assuming these functions exist in main.c
+// These functions would typically be declared in a header file (e.g., mining.h)
+// For this example, we declare them here to show the usage pattern
 extern void double_sha256(const uint8_t* data, size_t len, uint8_t* hash);
 extern uint32_t count_leading_zeros(const uint8_t* hash);
 
@@ -52,7 +56,7 @@ void example_benchmark_mining_functions(void)
     benchmark_stats_t stats;
     if (benchmark_get_stats("double_sha256", &stats)) {
         printf("\nDetailed stats for double_sha256:\n");
-        printf("  Iterations: %llu\n", stats.total_iterations);
+        printf("  Iterations: %" PRIu64 "\n", stats.total_iterations);
         printf("  Average time: %.2f us\n", stats.avg_time_us);
         printf("  Estimated hashrate: %.2f H/s\n", 1000000.0 / stats.avg_time_us);
     }
