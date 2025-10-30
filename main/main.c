@@ -1,3 +1,15 @@
+/**
+ * @file main.c
+ * @brief ESP32-S3 Bitcoin Solo Miner
+ * 
+ * This application implements a Bitcoin solo miner for the ESP32-S3 microcontroller.
+ * It performs SHA256 double hashing to mine Bitcoin blocks, displays statistics on
+ * an SSD1306 OLED display, and connects to WiFi for potential pool communication.
+ * 
+ * @note This is an educational/testing project. The ESP32's hashrate is far too low
+ * for practical Bitcoin mining.
+ */
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -22,30 +34,39 @@
 
 
 // WiFi Configuration
-#define WIFI_SSID $ENV{WIFI_SSID_VAR}
-#define WIFI_PASS $ENV{WIFI_PASS_VAR}
+#define WIFI_SSID $ENV{WIFI_SSID_VAR}  /*!< WiFi SSID from environment */
+#define WIFI_PASS $ENV{WIFI_PASS_VAR}  /*!< WiFi password from environment */
 
 // I2C Configuration for OLED
-#define I2C_MASTER_SCL_IO    8    // GPIO22 for SCL
-#define I2C_MASTER_SDA_IO    15    // GPIO21 for SDA
-#define I2C_MASTER_NUM       I2C_NUM_0
-#define I2C_MASTER_FREQ_HZ   100000
+#define I2C_MASTER_SCL_IO    8    /*!< GPIO pin for I2C SCL */
+#define I2C_MASTER_SDA_IO    15   /*!< GPIO pin for I2C SDA */
+#define I2C_MASTER_NUM       I2C_NUM_0  /*!< I2C port number */
+#define I2C_MASTER_FREQ_HZ   100000     /*!< I2C master clock frequency */
 
 // Bitcoin Mining Configuration
-#define BTC_ADDRESS "1CW2jT4gwqyWmbAZ8HjmTLBaVg8biUiWW7"
+#define BTC_ADDRESS "1CW2jT4gwqyWmbAZ8HjmTLBaVg8biUiWW7"  /*!< Bitcoin address for mining rewards */
 
 static const char *TAG = "BTC_MINER";
 
 // Mining statistics
-static uint64_t total_hashes = 0;
-static uint32_t best_difficulty = 0;
-static uint32_t nonce = 0;
-static uint8_t block_header[80];
+static uint64_t total_hashes = 0;   /*!< Total number of hashes computed */
+static uint32_t best_difficulty = 0; /*!< Best difficulty (leading zeros) found */
+static uint32_t nonce = 0;          /*!< Current nonce value */
+static uint8_t block_header[80];    /*!< Bitcoin block header (80 bytes) */
 
 // OLED device handle
 static SSD1306_t dev;
 
-// WiFi event handler
+/**
+ * @brief WiFi event handler
+ * 
+ * Handles WiFi connection events including start, disconnect, and IP assignment.
+ * 
+ * @param arg User argument
+ * @param event_base Event base (WIFI_EVENT or IP_EVENT)
+ * @param event_id Specific event ID
+ * @param event_data Event data pointer
+ */
 static void wifi_event_handler(void* arg, esp_event_base_t event_base,
                               int32_t event_id, void* event_data)
 {
@@ -60,7 +81,12 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base,
     }
 }
 
-// Initialize WiFi
+/**
+ * @brief Initialize WiFi in station mode
+ * 
+ * Sets up WiFi connection with credentials from environment variables.
+ * Registers event handlers for WiFi and IP events.
+ */
 void wifi_init(void)
 {
     ESP_ERROR_CHECK(esp_netif_init());
@@ -97,7 +123,13 @@ void wifi_init(void)
     ESP_LOGI(TAG, "WiFi init finished.");
 }
 
-// Initialize I2C for OLED
+/**
+ * @brief Initialize I2C master interface
+ * 
+ * Configures and initializes I2C bus for communication with OLED display.
+ * 
+ * @return ESP_OK on success, error code otherwise
+ */
 esp_err_t i2c_master_init(void)
 {
     i2c_config_t conf = {
@@ -117,7 +149,15 @@ esp_err_t i2c_master_init(void)
     return i2c_driver_install(I2C_MASTER_NUM, conf.mode, 0, 0, 0);
 }
 
-// Double SHA256 hash
+/**
+ * @brief Compute double SHA256 hash
+ * 
+ * Performs two rounds of SHA256 hashing as required by Bitcoin protocol.
+ * 
+ * @param data Input data to hash
+ * @param len Length of input data in bytes
+ * @param hash Output buffer for 32-byte hash result
+ */
 void double_sha256(const uint8_t* data, size_t len, uint8_t* hash)
 {
     mbedtls_md_context_t ctx;
@@ -140,7 +180,15 @@ void double_sha256(const uint8_t* data, size_t len, uint8_t* hash)
     mbedtls_md_free(&ctx);
 }
 
-// Count leading zero bits in hash
+/**
+ * @brief Count leading zero bits in hash
+ * 
+ * Counts the number of leading zero bits in a hash to determine mining difficulty.
+ * Used to check if a hash meets the required difficulty target.
+ * 
+ * @param hash 32-byte hash to analyze
+ * @return Number of leading zero bits
+ */
 uint32_t count_leading_zeros(const uint8_t* hash)
 {
     uint32_t zeros = 0;
@@ -159,7 +207,13 @@ uint32_t count_leading_zeros(const uint8_t* hash)
     return zeros;
 }
 
-// Initialize block header with mock data
+/**
+ * @brief Initialize Bitcoin block header
+ * 
+ * Sets up a mock Bitcoin block header with version, timestamp, difficulty bits,
+ * and initial nonce value. In a real miner, this would contain actual block data
+ * from the network.
+ */
 void init_block_header(void)
 {
     memset(block_header, 0, 80);
@@ -186,7 +240,14 @@ void init_block_header(void)
     ESP_LOGI(TAG, "Block header initialized");
 }
 
-// Update OLED display
+/**
+ * @brief Update OLED display with mining statistics
+ * 
+ * Displays current hashrate, total hashes, best difficulty found, and current nonce
+ * on the OLED screen.
+ * 
+ * @param hashrate Current mining hashrate in hashes per second
+ */
 void update_display(float hashrate)
 {
     char line[32];
@@ -215,7 +276,14 @@ void update_display(float hashrate)
     ssd1306_display_text(&dev, 5, line, strlen(line), false);
 }
 
-// Mining task
+/**
+ * @brief Main mining task
+ * 
+ * Continuously computes SHA256 hashes by incrementing the nonce value.
+ * Tracks statistics and updates the display every 2 seconds.
+ * 
+ * @param pvParameters Task parameters (unused)
+ */
 void mining_task(void *pvParameters)
 {
     uint8_t hash[32];
@@ -283,15 +351,26 @@ void mining_task(void *pvParameters)
 }
 
 
-#define I2C_SWEEP_TAG     "I2C_SWEEP"
-#define I2C_SWEEP_PORT    I2C_NUM_0
-#define I2C_SWEEP_FREQ_HZ 100000  // 100 kHz p/ evitar ruído no teste
+#define I2C_SWEEP_TAG     "I2C_SWEEP"  /*!< Tag for I2C sweep logging */
+#define I2C_SWEEP_PORT    I2C_NUM_0    /*!< I2C port for sweep */
+#define I2C_SWEEP_FREQ_HZ 100000       /*!< I2C frequency for sweep (100 kHz) */
 
-// Candidatos seguros no S3 (evita 0: strap, 19/20: USB D-/D+, 46: input-only)
+/**
+ * @brief GPIO pins safe to use on ESP32-S3
+ * 
+ * Excludes strapping pins (0), USB pins (19, 20), and input-only pins (46).
+ */
 static const int s3_i2c_candidates[] = {
     1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,21
 };
 
+/**
+ * @brief Initialize I2C on specific GPIO pins
+ * 
+ * @param sda SDA GPIO pin number
+ * @param scl SCL GPIO pin number
+ * @return ESP_OK on success, error code otherwise
+ */
 static esp_err_t i2c_init_on_pins(int sda, int scl) {
     // puxa as linhas para alto (pull-up interno é fraco, mas ajuda na leitura de idle)
     gpio_set_pull_mode(sda, GPIO_PULLUP_ONLY);
@@ -310,10 +389,18 @@ static esp_err_t i2c_init_on_pins(int sda, int scl) {
     return i2c_driver_install(I2C_SWEEP_PORT, conf.mode, 0, 0, 0);
 }
 
+/**
+ * @brief Deinitialize I2C driver
+ */
 static void i2c_deinit(void) {
     i2c_driver_delete(I2C_SWEEP_PORT);
 }
 
+/**
+ * @brief Scan all I2C addresses and log devices found
+ * 
+ * @return Number of I2C devices found
+ */
 static int i2c_scan_addrs_log(void) {
     int found = 0;
     for (uint8_t a = 1; a < 0x7F; a++) {
@@ -331,6 +418,12 @@ static int i2c_scan_addrs_log(void) {
     return found;
 }
 
+/**
+ * @brief Sweep through GPIO pin combinations to find I2C devices
+ * 
+ * Tests different SDA/SCL pin combinations to automatically detect
+ * which pins are connected to I2C devices.
+ */
 static void i2c_pin_sweep(void) {
     ESP_LOGI(I2C_SWEEP_TAG, "=== starting sweep @100kHz ===");
     size_t n = sizeof(s3_i2c_candidates)/sizeof(s3_i2c_candidates[0]);
@@ -366,6 +459,13 @@ static void i2c_pin_sweep(void) {
     ESP_LOGI(I2C_SWEEP_TAG, "=== sweep done ===");
 }
 
+/**
+ * @brief Probe a specific GPIO pin by reading its level
+ * 
+ * Useful for testing if a GPIO pin is properly connected by grounding it.
+ * 
+ * @param gpio GPIO pin number to probe
+ */
 static void probe_pin_is_really_here(int gpio) {
   gpio_set_pull_mode(gpio, GPIO_PULLUP_ONLY);
   gpio_set_direction(gpio, GPIO_MODE_INPUT);
@@ -376,7 +476,16 @@ static void probe_pin_is_really_here(int gpio) {
   }
 }
 
-// Drop-in p/ substituir i2c_master_probe em qualquer IDF
+/**
+ * @brief Probe I2C address on specific pins
+ * 
+ * Compatibility function for older ESP-IDF versions without i2c_master_probe.
+ * 
+ * @param port I2C port number
+ * @param addr I2C device address
+ * @param timeout_ms Timeout in milliseconds
+ * @return ESP_OK if device responds, error code otherwise
+ */
 static esp_err_t i2c_probe_addr(i2c_port_t port, uint8_t addr, TickType_t timeout_ms)
 {
     i2c_cmd_handle_t cmd = i2c_cmd_link_create();
@@ -389,6 +498,14 @@ static esp_err_t i2c_probe_addr(i2c_port_t port, uint8_t addr, TickType_t timeou
     return err;
 }
 
+/**
+ * @brief Probe I2C device on specific pin combination
+ * 
+ * @param sda SDA GPIO pin
+ * @param scl SCL GPIO pin  
+ * @param addr I2C device address to probe
+ * @return ESP_OK if device found, error code otherwise
+ */
 static esp_err_t probe_once(int sda, int scl, int addr) {
     i2c_driver_delete(I2C_NUM_0); // ok se já estava deletado
 
@@ -409,6 +526,12 @@ static esp_err_t probe_once(int sda, int scl, int addr) {
 
 
 
+/**
+ * @brief Main application entry point
+ * 
+ * Initializes all subsystems (NVS, I2C, OLED, WiFi) and starts the mining task.
+ * Includes diagnostic I2C pin sweep to help identify connected devices.
+ */
 void app_main(void)
 {
 
