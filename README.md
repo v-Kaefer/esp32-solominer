@@ -4,6 +4,16 @@ IDE: VSCode, using the ESP-IDF: Explorer extension.
 
 Project first auto build for ESP32, then changed to ESP32S3 (via ESP-PROG).
 
+## Display Configuration
+
+The miner supports modular OLED display configuration. See [DISPLAY_CONFIG.md](DISPLAY_CONFIG.md) for:
+- Supported display drivers (SSD1306, SSD1315)
+- I2C pin configuration
+- Display troubleshooting
+- Adding new display drivers
+
+**Quick Start:** Configure display settings in `main/display_config.h`
+
 ## WiFi Configuration
 
 To configure your WiFi credentials:

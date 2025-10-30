@@ -14,14 +14,8 @@
 #include "mbedtls/md.h"
 #include "driver/i2c.h"
 #include "driver/gpio.h"
-#include "ssd1306.h"
+#include "display.h"
 #include "config.h"
-
-// I2C Configuration for OLED
-#define I2C_MASTER_SCL_IO    8    // GPIO22 for SCL
-#define I2C_MASTER_SDA_IO    15    // GPIO21 for SDA
-#define I2C_MASTER_NUM       I2C_NUM_0
-#define I2C_MASTER_FREQ_HZ   100000
 
 // Bitcoin Mining Configuration
 #define BTC_ADDRESS "1CW2jT4gwqyWmbAZ8HjmTLBaVg8biUiWW7"
@@ -35,7 +29,7 @@ static uint32_t nonce = 0;
 static uint8_t block_header[80];
 
 // OLED device handle
-static SSD1306_t dev;
+static display_device_t *display_dev = NULL;
 
 // WiFi event handler
 static void wifi_event_handler(void* arg, esp_event_base_t event_base,
@@ -87,26 +81,6 @@ void wifi_init(void)
     ESP_ERROR_CHECK(esp_wifi_start());
 
     ESP_LOGI(TAG, "WiFi init finished.");
-}
-
-// Initialize I2C for OLED
-esp_err_t i2c_master_init(void)
-{
-    i2c_config_t conf = {
-        .mode = I2C_MODE_MASTER,
-        .sda_io_num = I2C_MASTER_SDA_IO,
-        .scl_io_num = I2C_MASTER_SCL_IO,
-        .sda_pullup_en = GPIO_PULLUP_ENABLE,
-        .scl_pullup_en = GPIO_PULLUP_ENABLE,
-        .master.clk_speed = I2C_MASTER_FREQ_HZ,
-    };
-    
-    esp_err_t err = i2c_param_config(I2C_MASTER_NUM, &conf);
-    if (err != ESP_OK) {
-        return err;
-    }
-    
-    return i2c_driver_install(I2C_MASTER_NUM, conf.mode, 0, 0, 0);
 }
 
 // Double SHA256 hash
@@ -181,30 +155,8 @@ void init_block_header(void)
 // Update OLED display
 void update_display(float hashrate)
 {
-    char line[32];
-    
-    ssd1306_clear_screen(&dev, false);
-    ssd1306_contrast(&dev, 0xff);
-    
-    // Title
-    ssd1306_display_text(&dev, 0, "ESP32-S3 BTC Miner", 18, false);
-    ssd1306_display_text(&dev, 1, "------------------", 18, false);
-    
-    // Hashrate
-    snprintf(line, sizeof(line), "Rate: %.1f H/s", hashrate);
-    ssd1306_display_text(&dev, 2, line, strlen(line), false);
-    
-    // Total hashes
-    snprintf(line, sizeof(line), "Total: %llu", total_hashes);
-    ssd1306_display_text(&dev, 3, line, strlen(line), false);
-    
-    // Best difficulty
-    snprintf(line, sizeof(line), "Best: %lu zeros", best_difficulty);
-    ssd1306_display_text(&dev, 4, line, strlen(line), false);
-    
-    // Current nonce
-    snprintf(line, sizeof(line), "Nonce: %lu", nonce);
-    ssd1306_display_text(&dev, 5, line, strlen(line), false);
+    if (!display_dev) return;
+    display_mining_status(display_dev, hashrate, total_hashes, best_difficulty, nonce);
 }
 
 // Mining task
@@ -242,8 +194,10 @@ void mining_task(void *pvParameters)
         // Check if we found a valid block (need ~70 zeros for real Bitcoin)
         if (difficulty >= 70) {
             ESP_LOGI(TAG, "!!! BLOCK FOUND !!!");
-            ssd1306_clear_screen(&dev, false);
-            ssd1306_display_text(&dev, 2, "*** BLOCK FOUND ***", 19, false);
+            if (display_dev) {
+                display_clear(display_dev, false);
+                display_text(display_dev, 2, "*** BLOCK FOUND ***", 19, false);
+            }
             vTaskDelay(pdMS_TO_TICKS(10000));
         }
         
@@ -403,7 +357,11 @@ static esp_err_t probe_once(int sda, int scl, int addr) {
 
 void app_main(void)
 {
+    ESP_LOGI(TAG, "ESP32-S3 Bitcoin Miner Starting...");
 
+    // Debug code for finding I2C pins (commented out by default)
+    // Uncomment the following lines to scan for I2C devices:
+    /*
     // tente poucos pares plausíveis e logue somente quando der ACK
     int sda_candidates[] = {8, 15, 7};      // ajuste conforme sua placa
     int scl_candidates[] = {1, 2, 3, 4, 9};    // ajuste conforme sua placa
@@ -417,14 +375,10 @@ void app_main(void)
             }
         }
     }
-
-    ESP_LOGI(TAG, "ESP32-S3 Bitcoin Miner Starting...");
-    //probe_pin_is_really_here(16); // teste de pino com GND fisico
-    //probe_pin_is_really_here(15); // teste de pino com GND fisico
-
+    
     ESP_LOGI(TAG, "I2C pin sweep (100kHz)...");
     i2c_pin_sweep();  // <- roda uma vez para descobrir o par que responde
-
+    */
     
     // Initialize NVS
     esp_err_t ret = nvs_flash_init();
@@ -434,41 +388,34 @@ void app_main(void)
     }
     ESP_ERROR_CHECK(ret);
     
-    // Initialize I2C
+    // Initialize I2C for display
     ESP_LOGI(TAG, "Initializing I2C...");
-    ESP_ERROR_CHECK(i2c_master_init());
+    ESP_ERROR_CHECK(display_init_i2c());
     
-    // Initialize OLED
-    ESP_LOGI(TAG, "Initializing OLED...");
-    for (uint8_t a = 1; a < 0x7F; a++) {
-        i2c_cmd_handle_t c = i2c_cmd_link_create();
-        i2c_master_start(c);
-        i2c_master_write_byte(c, (a << 1) | I2C_MASTER_WRITE, true);
-        i2c_master_stop(c);
-        esp_err_t r = i2c_master_cmd_begin(I2C_MASTER_NUM, c, pdMS_TO_TICKS(50));
-        i2c_cmd_link_delete(c);
-        if (r == ESP_OK) {
-            ESP_LOGI("I2C", "ACHOU em 0x%02X", a);
-        } else {
-            // descomente se quiser ver o motivo
-            ESP_LOGW("I2C", "0x%02X -> %s", a, esp_err_to_name(r));
-        }
+    // Initialize display
+    ESP_LOGI(TAG, "Initializing display...");
+    display_dev = display_init();
+    
+    if (display_dev) {
+        display_clear(display_dev, false);
+        display_text(display_dev, 0, "ESP32-S3 Miner", 14, false);
+        display_text(display_dev, 2, "Initializing...", 15, false);
+    } else {
+        ESP_LOGW(TAG, "Display initialization failed, continuing without display");
     }
-
-    ssd1306_clear_screen(&dev, false);
-    ssd1306_contrast(&dev, 0xff);
-    
-    ssd1306_display_text(&dev, 0, "ESP32-S3 Miner", 14, false);
-    ssd1306_display_text(&dev, 2, "Initializing...", 15, false);
     
     // Initialize WiFi
     ESP_LOGI(TAG, "Initializing WiFi...");
     wifi_init();
     
-    ssd1306_display_text(&dev, 3, "WiFi Connecting...", 18, false);
+    if (display_dev) {
+        display_text(display_dev, 3, "WiFi Connecting...", 18, false);
+    }
     vTaskDelay(pdMS_TO_TICKS(5000));
     
-    ssd1306_display_text(&dev, 4, "Starting mining!", 16, false);
+    if (display_dev) {
+        display_text(display_dev, 4, "Starting mining!", 16, false);
+    }
     vTaskDelay(pdMS_TO_TICKS(2000));
     
     // Create mining task on Core 1 for maximum performance
