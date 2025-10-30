@@ -150,6 +150,31 @@ jobs:
         script: |
           const fs = require('fs');
           
+          // Check for existing open issues for this PR
+          const existingIssues = await github.rest.issues.listForRepo({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            state: 'open',
+            labels: '🤖 automated,🤖 copilot',
+            per_page: 100
+          });
+          
+          const prNumber = ${{ github.event.pull_request.number }};
+          const existingIssue = existingIssues.data.find(issue => 
+            issue.title.includes(`PR #${prNumber}`) && issue.title.includes('Code Quality Issues')
+          );
+          
+          if (existingIssue) {
+            console.log(`Issue #${existingIssue.number} already exists for this PR. Adding a comment instead.`);
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: existingIssue.number,
+              body: `🔄 Code quality checks failed again.\n\n**Workflow Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\n\nPlease see the latest workflow run for updated details.`
+            });
+            return;
+          }
+          
           // Prepare issue body
           let issueBody = `## Code Quality Check Failed\n\n`;
           issueBody += `The code quality checks failed for PR #${{ github.event.pull_request.number }}.\n\n`;
@@ -218,7 +243,11 @@ jobs:
           }
           
           issueBody += `---\n\n`;
-          issueBody += `@github/copilot Please review and provide a fix for these code quality issues.\n\n`;
+          issueBody += `### 🤖 GitHub Copilot Action Required\n\n`;
+          issueBody += `@github/copilot please review the code quality issues listed above and provide a fix.\n\n`;
+          issueBody += `You can use the following commands:\n`;
+          issueBody += `- \`@github/copilot /fix\` - Generate a fix for these issues\n`;
+          issueBody += `- \`@github/copilot /explain\` - Explain the issues in detail\n\n`;
           issueBody += `**Note:** This issue was automatically created by the Code Quality workflow.`;
           
           // Create the issue
@@ -227,7 +256,7 @@ jobs:
             repo: context.repo.repo,
             title: `Code Quality Issues in PR #${{ github.event.pull_request.number }}`,
             body: issueBody,
-            labels: ['🤖 automated', '🔒 security']
+            labels: ['🤖 automated', '🤖 copilot']
           });
           
           console.log(`Created issue #${issue.data.number}`);
