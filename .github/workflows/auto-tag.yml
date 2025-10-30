@@ -5,7 +5,7 @@ on:
     branches:
       - main
       - develop
-      - 'release/**'  # Auto-tag on release branches
+      - release
     paths:
       - 'main/**'
       - 'CMakeLists.txt'
@@ -88,7 +88,7 @@ jobs:
           elif [[ "$BRANCH_NAME" == "main" ]]; then
             VERSION_SUFFIX="-beta"
             echo "Branch is main, adding beta suffix"
-          elif [[ "$BRANCH_NAME" == release/* ]]; then
+          elif [[ "$BRANCH_NAME" == "release" ]]; then
             VERSION_SUFFIX=""
             echo "Branch is release, using full version"
           else
