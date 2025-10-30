@@ -6,7 +6,7 @@
 - **Model**: ESP32-S3-WROOM-1
 - **Official Documentation**:
   - [ESP32-S3-WROOM-1 Datasheet](https://documentation.espressif.com/esp32-s3-wroom-1_wroom-1u_datasheet_en.html)
-  - [ESP32-S3 Technical Reference](https://documentation.espressif.com/esp32-s3_datasheet_en.pdf)
+  - [ESP32-S3 Datasheet](https://documentation.espressif.com/esp32-s3_datasheet_en.pdf)
   - [ESP32-S3 Development Kits Guide](https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32s3/)
 
 ### Connected Peripherals
@@ -36,7 +36,7 @@
 - GPIO19, GPIO20: USB D-, D+ (avoid if USB is needed)
 
 **Safe GPIOs for general use**:
-- GPIO1-18, GPIO21 (excluding strapping pins and I2C pins already in use)
+- GPIO1-18, GPIO21 (excluding GPIO0, GPIO19, GPIO20 for USB, and I2C pins GPIO9, GPIO15 already in use)
 
 ## Development Environment
 
