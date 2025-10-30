@@ -18,15 +18,15 @@
 #include "config.h"
 
 // I2C Configuration for OLED
-#define I2C_MASTER_SCL_IO    8    // GPIO22 for SCL
-#define I2C_MASTER_SDA_IO    15    // GPIO21 for SDA
+#define I2C_MASTER_SCL_IO    9    // GPIO09 na placa
+#define I2C_MASTER_SDA_IO    15    // GPIO07 na placa
 #define I2C_MASTER_NUM       I2C_NUM_0
 #define I2C_MASTER_FREQ_HZ   100000
 
 // Bitcoin Mining Configuration
 #define BTC_ADDRESS "1CW2jT4gwqyWmbAZ8HjmTLBaVg8biUiWW7"
 
-static const char *TAG = "BTC_MINER";
+//static const char *TAG = "BTC_MINER";
 
 // Mining statistics
 static uint64_t total_hashes = 0;
@@ -363,9 +363,9 @@ static esp_err_t i2c_probe_addr(i2c_port_t port, uint8_t addr, TickType_t timeou
 {
     i2c_cmd_handle_t cmd = i2c_cmd_link_create();
     i2c_master_start(cmd);
-    // bit R/W = 0 (WRITE). O ACK do slave confirma a presença.
-    i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_WRITE, true);
+    i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_WRITE, true); // espera ACK
     i2c_master_stop(cmd);
+
     esp_err_t err = i2c_master_cmd_begin(port, cmd, pdMS_TO_TICKS(timeout_ms));
     i2c_cmd_link_delete(cmd);
     return err;
@@ -387,6 +387,55 @@ static esp_err_t probe_once(int sda, int scl, int addr) {
     esp_err_t r = i2c_probe_addr(I2C_NUM_0, addr, 50);
     i2c_driver_delete(I2C_NUM_0);
     return r;
+}
+
+static esp_err_t try_pair(int sda, int scl)
+{
+    // sempre tenta deletar antes, ignora erro
+    i2c_driver_delete(I2C_PORT);
+
+    i2c_config_t conf = {
+        .mode = I2C_MODE_MASTER,
+        .sda_io_num = sda,
+        .sda_pullup_en = GPIO_PULLUP_ENABLE,
+        .scl_io_num = scl,
+        .scl_pullup_en = GPIO_PULLUP_ENABLE,
+        .master.clk_speed = 100000,
+    };
+
+    esp_err_t err;
+    err = i2c_param_config(I2C_PORT, &conf);
+    if (err != ESP_OK) {
+        ESP_LOGW(TAG, "param_config falhou SDA=%d SCL=%d: %s", sda, scl, esp_err_to_name(err));
+        return err;
+    }
+
+    err = i2c_driver_install(I2C_PORT, conf.mode, 0, 0, 0);
+    if (err != ESP_OK) {
+        ESP_LOGW(TAG, "driver_install falhou SDA=%d SCL=%d: %s", sda, scl, esp_err_to_name(err));
+        return err;
+    }
+
+    vTaskDelay(pdMS_TO_TICKS(3));
+
+    // tenta 0x3C (SSD1306 padrão) e 0x3D só pra garantir
+    esp_err_t r1 = i2c_probe_addr(I2C_PORT, 0x3C, 50);
+    esp_err_t r2 = i2c_probe_addr(I2C_PORT, 0x3D, 50);
+
+    // limpa antes de sair
+    i2c_driver_delete(I2C_PORT);
+
+    if (r1 == ESP_OK || r2 == ESP_OK) {
+        ESP_LOGE(TAG,
+            ">> ENCONTREI ACK! SDA=%d SCL=%d (0x3C=%s 0x3D=%s)",
+            sda, scl,
+            (r1==ESP_OK?"ACK":"FAIL"),
+            (r2==ESP_OK?"ACK":"FAIL"));
+        return ESP_OK;
+    }
+
+    ESP_LOGI(TAG, "SDA=%d SCL=%d -> nada", sda, scl);
+    return ESP_FAIL;
 }
 
 static void i2c_init_fixed(void)
@@ -415,15 +464,22 @@ void app_main(void)
     int sda_candidates[] = {8, 15, 7};      // ajuste conforme sua placa
     int scl_candidates[] = {1, 2, 3, 4, 9};    // ajuste conforme sua placa
 
-    for (int si = 0; si < sizeof(sda_candidates)/4; ++si) {
-        for (int ci = 0; ci < sizeof(scl_candidates)/4; ++ci) {
-            int SDA = sda_candidates[si], SCL = scl_candidates[ci];
-            if (probe_once(SDA, SCL, 0x3C) == ESP_OK ||
-                probe_once(SDA, SCL, 0x3D) == ESP_OK) {
-                ESP_LOGW("I2C", "ACK em 0x3C/0x3D com SDA=%d SCL=%d", SDA, SCL);
-            }
+    for (int si = 0; si < sizeof(sda_candidates)/sizeof(int); ++si) {
+        for (int ci = 0; ci < sizeof(scl_candidates)/sizeof(int); ++ci) {
+
+            int SDA = sda_candidates[si];
+            int SCL = scl_candidates[ci];
+
+            ESP_LOGI(TAG, "testando SDA=%d SCL=%d ...", SDA, SCL);
+            esp_err_t ok = try_pair(SDA, SCL);
+
+            // pausa pequena só p/ estabilizar logs
+            vTaskDelay(pdMS_TO_TICKS(200));
         }
     }*/
+
+    ESP_LOGI(TAG, "fim do sweep.");
+    while (1) { vTaskDelay(pdMS_TO_TICKS(1000)); }
 
     ESP_LOGI(TAG, "ESP32-S3 Bitcoin Miner Starting...");
 
@@ -437,17 +493,19 @@ void app_main(void)
         ret = nvs_flash_init();
     }
     ESP_ERROR_CHECK(ret);
-    
+    */
     // Initialize I2C
     ESP_LOGI(TAG, "Initializing I2C...");
     //ESP_ERROR_CHECK(i2c_master_init());
+    // 1. Sobe I2C estável
     i2c_init_fixed();
     
     i2c_master_init_ssd1306(&dev, I2C_MASTER_NUM, 128, 64, 0x3C);
 
     // Initialize OLED
     ESP_LOGI(TAG, "Initializing OLED...");
-    for (uint8_t a = 1; a < 0x7F; a++) {
+    i2c_master_init_ssd1306(&dev, I2C_MASTER_NUM, 128, 64, 0x3C);
+    /*for (uint8_t a = 1; a < 0x7F; a++) {
         i2c_cmd_handle_t c = i2c_cmd_link_create();
         i2c_master_start(c);
         i2c_master_write_byte(c, (a << 1) | I2C_MASTER_WRITE, true);
@@ -460,16 +518,16 @@ void app_main(void)
             // descomente se quiser ver o motivo
             ESP_LOGW("I2C", "0x%02X -> %s", a, esp_err_to_name(r));
         }
-    }
+    }*/
 
-    ssd1306_clear_screen(&dev, false);
+    //ssd1306_clear_screen(&dev, false);
     ssd1306_contrast(&dev, 0xff);
     
     ssd1306_display_text(&dev, 0, "ESP32-S3 Miner", 14, false);
     ssd1306_display_text(&dev, 2, "Initializing...", 15, false);
     
     // Initialize WiFi
-    ESP_LOGI(TAG, "Initializing WiFi...");
+    /*ESP_LOGI(TAG, "Initializing WiFi...");
     wifi_init();
     
     ssd1306_display_text(&dev, 3, "WiFi Connecting...", 18, false);
@@ -489,5 +547,5 @@ void app_main(void)
         1  // Pin to Core 1
     );
     
-    ESP_LOGI(TAG, "Mining task created");
+    ESP_LOGI(TAG, "Mining task created");*/
 }

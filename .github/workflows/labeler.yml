@@ -1,0 +1,50 @@
+name: PR Labeler
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  label:
+    name: Auto-label PR
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Run Labeler
+        uses: actions/labeler@v6
+        with:
+          configuration-path: .github/labeler.yml
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          sync-labels: true
+
+      - name: Sync Label Colors
+        uses: micnncim/action-label-syncer@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          manifest: .github/labels.json
+          prune: false
+
+      - name: Label Summary
+        run: |
+          echo "## 🏷️ Auto-Labeling Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "PR has been automatically labeled based on:" >> $GITHUB_STEP_SUMMARY
+          echo "- Branch name prefix (feat/, fix/, hotfix/, etc.)" >> $GITHUB_STEP_SUMMARY
+          echo "- Files changed in the PR" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Applicable labels for ESP32 Solo Miner:" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔧 firmware: ESP32 firmware and ESP-IDF changes" >> $GITHUB_STEP_SUMMARY
+          echo "- ⛏️ mining: Bitcoin mining logic" >> $GITHUB_STEP_SUMMARY
+          echo "- ⚙️ hardware: Hardware and GPIO changes" >> $GITHUB_STEP_SUMMARY
+          echo "- 🖥️ display: OLED display changes" >> $GITHUB_STEP_SUMMARY
+          echo "- 📡 networking: WiFi and network changes" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Label colors have been synchronized with .github/labels.json" >> $GITHUB_STEP_SUMMARY
