@@ -358,16 +358,6 @@ static void i2c_pin_sweep(void) {
     ESP_LOGI(I2C_SWEEP_TAG, "=== sweep done ===");
 }
 
-static void probe_pin_is_really_here(int gpio) {
-  gpio_set_pull_mode(gpio, GPIO_PULLUP_ONLY);
-  gpio_set_direction(gpio, GPIO_MODE_INPUT);
-  for (int i=0;i<100;i++) {
-    int lvl = gpio_get_level(gpio);
-    ESP_LOGI("PROBE", "GPIO%d level=%d (encoste ao GND p/ ver 0)", gpio, lvl);
-    vTaskDelay(pdMS_TO_TICKS(200));
-  }
-}
-
 // Drop-in p/ substituir i2c_master_probe em qualquer IDF
 static esp_err_t i2c_probe_addr(i2c_port_t port, uint8_t addr, TickType_t timeout_ms)
 {
@@ -399,12 +389,29 @@ static esp_err_t probe_once(int sda, int scl, int addr) {
     return r;
 }
 
+static void i2c_init_fixed(void)
+{
+    i2c_config_t conf = {
+        .mode = I2C_MODE_MASTER,
+        .sda_io_num    = I2C_MASTER_SDA_IO,
+        .sda_pullup_en = GPIO_PULLUP_ENABLE,
+        .scl_io_num    = I2C_MASTER_SCL_IO,
+        .scl_pullup_en = GPIO_PULLUP_ENABLE,
+        .master.clk_speed = I2C_MASTER_FREQ_HZ,
+    };
 
+    ESP_ERROR_CHECK(i2c_param_config(I2C_MASTER_NUM, &conf));
+    ESP_ERROR_CHECK(i2c_driver_install(I2C_MASTER_NUM,
+                                       conf.mode,
+                                       0, // rx buf disabled master
+                                       0, // tx buf disabled master
+                                       0));
+}
 
 void app_main(void)
 {
 
-    // tente poucos pares plausíveis e logue somente quando der ACK
+    /* tente poucos pares plausíveis e logue somente quando der ACK
     int sda_candidates[] = {8, 15, 7};      // ajuste conforme sua placa
     int scl_candidates[] = {1, 2, 3, 4, 9};    // ajuste conforme sua placa
 
@@ -416,15 +423,12 @@ void app_main(void)
                 ESP_LOGW("I2C", "ACK em 0x3C/0x3D com SDA=%d SCL=%d", SDA, SCL);
             }
         }
-    }
+    }*/
 
     ESP_LOGI(TAG, "ESP32-S3 Bitcoin Miner Starting...");
-    //probe_pin_is_really_here(16); // teste de pino com GND fisico
-    //probe_pin_is_really_here(15); // teste de pino com GND fisico
 
-    ESP_LOGI(TAG, "I2C pin sweep (100kHz)...");
-    i2c_pin_sweep();  // <- roda uma vez para descobrir o par que responde
-
+    //ESP_LOGI(TAG, "I2C pin sweep (100kHz)...");
+    //i2c_pin_sweep();  // <- roda uma vez para descobrir o par que responde
     
     // Initialize NVS
     esp_err_t ret = nvs_flash_init();
@@ -436,8 +440,11 @@ void app_main(void)
     
     // Initialize I2C
     ESP_LOGI(TAG, "Initializing I2C...");
-    ESP_ERROR_CHECK(i2c_master_init());
+    //ESP_ERROR_CHECK(i2c_master_init());
+    i2c_init_fixed();
     
+    i2c_master_init_ssd1306(&dev, I2C_MASTER_NUM, 128, 64, 0x3C);
+
     // Initialize OLED
     ESP_LOGI(TAG, "Initializing OLED...");
     for (uint8_t a = 1; a < 0x7F; a++) {
