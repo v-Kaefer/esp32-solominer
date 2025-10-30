@@ -22,11 +22,12 @@
 #define I2C_MASTER_SDA_IO    15    // GPIO07 na placa
 #define I2C_MASTER_NUM       I2C_NUM_0
 #define I2C_MASTER_FREQ_HZ   100000
+#define I2C_PORT             I2C_MASTER_NUM
 
 // Bitcoin Mining Configuration
 #define BTC_ADDRESS "1CW2jT4gwqyWmbAZ8HjmTLBaVg8biUiWW7"
 
-//static const char *TAG = "BTC_MINER";
+static const char *TAG = "BTC_MINER";
 
 // Mining statistics
 static uint64_t total_hashes = 0;
@@ -478,8 +479,8 @@ void app_main(void)
         }
     }*/
 
-    ESP_LOGI(TAG, "fim do sweep.");
-    while (1) { vTaskDelay(pdMS_TO_TICKS(1000)); }
+    // ESP_LOGI(TAG, "fim do sweep.");
+    // while (1) { vTaskDelay(pdMS_TO_TICKS(1000)); }
 
     ESP_LOGI(TAG, "ESP32-S3 Bitcoin Miner Starting...");
 
@@ -493,7 +494,7 @@ void app_main(void)
         ret = nvs_flash_init();
     }
     ESP_ERROR_CHECK(ret);
-    */
+
     // Initialize I2C
     ESP_LOGI(TAG, "Initializing I2C...");
     //ESP_ERROR_CHECK(i2c_master_init());
