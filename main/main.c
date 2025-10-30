@@ -501,8 +501,6 @@ void app_main(void)
     // 1. Sobe I2C estável
     i2c_init_fixed();
     
-    i2c_master_init_ssd1306(&dev, I2C_MASTER_NUM, 128, 64, 0x3C);
-
     // Initialize OLED
     ESP_LOGI(TAG, "Initializing OLED...");
     i2c_master_init_ssd1306(&dev, I2C_MASTER_NUM, 128, 64, 0x3C);
