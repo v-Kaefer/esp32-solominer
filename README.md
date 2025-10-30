@@ -39,7 +39,7 @@ To configure your WiFi credentials for local development:
 
 ### CI/CD Builds
 
-CI/CD builds automatically skip WiFi functionality since `config.h` is not committed to the repository for security reasons. The WiFi code is conditionally compiled only when `WIFI_SSID` is defined, allowing builds to succeed without credentials.
+CI/CD builds automatically skip WiFi functionality since `config.h` is not committed to the repository for security reasons. The WiFi code is conditionally compiled only when `WIFI_SSID` is defined (which comes from your local `config.h` file created from `config.h.example`). This allows automated builds to succeed without requiring WiFi credentials.
 
 ## Build Instructions
 
