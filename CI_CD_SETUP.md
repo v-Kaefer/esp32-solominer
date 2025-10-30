@@ -5,12 +5,11 @@ This repository uses GitHub Actions for continuous integration and continuous de
 ## 🚀 Quick Start
 
 When you create a pull request, the following checks will run automatically:
-1. ✅ **Build Check** - Compiles your code for ESP32-S3
+1. ✅ **Build & Security Analysis** - Compiles your code for ESP32-S3 and analyzes for vulnerabilities
 2. 🔍 **Static Analysis** - Checks for common bugs and code issues
-3. 🔒 **Security Scan** - Analyzes code for vulnerabilities
-4. 📝 **Code Quality** - Validates formatting and best practices
-5. 🧪 **Test Coverage** - Suggests tests for new features
-6. 📚 **Documentation** - Checks if docs need updating
+3. 📝 **Code Quality** - Validates formatting and best practices
+4. 🧪 **Test Coverage** - Suggests tests for new features
+5. 📚 **Documentation** - Checks if docs need updating
 
 ## 📊 Workflow Status
 
@@ -18,23 +17,18 @@ All workflow statuses can be viewed in the [Actions tab](../../actions).
 
 ## 🛠️ Workflows Overview
 
-### Build Workflow
-Compiles the project using ESP-IDF v5.1.2 for ESP32-S3 target.
-- Runs on: Push to main, Pull requests
-- Duration: ~5-10 minutes
+### Build and Security Analysis
+Compiles the project using ESP-IDF v5.1.2 for ESP32-S3 target and performs CodeQL security analysis.
+- Runs on: Push to main, Pull requests, Weekly (Monday)
+- Duration: ~10-15 minutes
 - Artifacts: Build binaries (30 days)
+- Results: GitHub Security tab
 
 ### Static Analysis
 Uses cppcheck to find potential issues in C code.
 - Runs on: Push to main, Pull requests
 - Duration: ~1-2 minutes
 - Artifacts: Analysis report (30 days)
-
-### CodeQL Security
-GitHub's security analysis tool for vulnerability detection.
-- Runs on: Push to main, Pull requests, Weekly (Monday)
-- Duration: ~10-15 minutes
-- Results: GitHub Security tab
 
 ### Code Quality
 Checks for code standards and best practices.

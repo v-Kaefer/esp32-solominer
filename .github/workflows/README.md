@@ -4,15 +4,19 @@ This directory contains the CI/CD workflows for the ESP32 Solo Miner project.
 
 ## Workflows Overview
 
-### 1. Build Workflow (`build.yml`)
-**Triggers:** Push to main, Pull requests to main
-**Purpose:** Compiles the ESP32-S3 project using ESP-IDF v5.1.2
+### 1. Build and Security Analysis (`build-and-analyze.yml`)
+**Triggers:** Push to main, Pull requests to main, Weekly schedule (Mondays)
+**Purpose:** Compiles the ESP32-S3 project and performs CodeQL security analysis
 
 **What it does:**
 - Sets up ESP-IDF environment
+- Initializes CodeQL for security scanning
 - Creates config.h from example template
 - Builds the project for ESP32-S3 target
 - Archives build artifacts (binaries, ELF, map files)
+- Performs security-focused code analysis
+- Detects common vulnerabilities (buffer overflows, etc.)
+- Creates security alerts in GitHub Security tab
 
 ### 2. Static Analysis (`static-analysis.yml`)
 **Triggers:** Push to main, Pull requests to main
@@ -24,17 +28,7 @@ This directory contains the CI/CD workflows for the ESP32 Solo Miner project.
 - Identifies unused functions and variables
 - Generates detailed analysis report
 
-### 3. CodeQL Security Analysis (`codeql.yml`)
-**Triggers:** Push to main, Pull requests to main, Weekly schedule (Mondays)
-**Purpose:** Scans for security vulnerabilities
-
-**What it does:**
-- Performs security-focused code analysis
-- Detects common vulnerabilities (buffer overflows, SQL injection patterns, etc.)
-- Runs security and quality queries
-- Creates security alerts in GitHub Security tab
-
-### 4. Code Quality Checks (`code-quality.yml`)
+### 3. Code Quality Checks (`code-quality.yml`)
 **Triggers:** Push to main, Pull requests to main
 **Purpose:** Enforces code quality standards
 
@@ -46,7 +40,7 @@ This directory contains the CI/CD workflows for the ESP32 Solo Miner project.
 - Finds TODO/FIXME comments
 - Checks for overly long functions (>200 lines)
 
-### 5. Test Coverage Check (`test-coverage.yml`)
+### 4. Test Coverage Check (`test-coverage.yml`)
 **Triggers:** Pull requests that modify C/H files
 **Purpose:** Monitors test coverage and suggests tests for new features
 
@@ -58,7 +52,7 @@ This directory contains the CI/CD workflows for the ESP32 Solo Miner project.
 - Comments on PR with recommendations
 - Suggests unit tests for mining functions, initialization routines
 
-### 6. Documentation Check (`documentation.yml`)
+### 5. Documentation Check (`documentation.yml`)
 **Triggers:** Pull requests to main
 **Purpose:** Ensures documentation stays current
 
@@ -108,14 +102,12 @@ Workflows generate artifacts that can be downloaded from the Actions tab:
 
 ## Troubleshooting
 
-### Build Workflow Fails
+### Build and Security Analysis Workflow Fails
 - Check if config.h.example exists and is valid
 - Verify ESP-IDF version compatibility
 - Check CMakeLists.txt configuration
-
-### CodeQL Analysis Fails
-- May need to adjust build commands if project structure changes
-- Check CodeQL logs for compilation errors
+- Review CodeQL logs for compilation errors
+- Check CodeQL alerts in Security tab
 
 ### Static Analysis False Positives
 - Add inline suppressions: `// cppcheck-suppress <warning-id>`

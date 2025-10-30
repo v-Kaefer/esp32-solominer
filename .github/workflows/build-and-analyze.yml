@@ -1,22 +1,33 @@
-name: Build ESP32 Project
+name: Build and Security Analysis
 
 on:
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  schedule:
+    # Run every Monday at 00:00 UTC
+    - cron: '0 0 * * 1'
 
 jobs:
-  build:
+  build-and-analyze:
     runs-on: ubuntu-latest
     permissions:
+      actions: read
       contents: read
+      security-events: write
     
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
         submodules: 'recursive'
+    
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: cpp
+        queries: security-and-quality
     
     - name: Setup ESP-IDF
       uses: espressif/esp-idf-ci-action@v1
@@ -47,3 +58,8 @@ jobs:
           build/*.elf
           build/*.map
         retention-days: 30
+    
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+      with:
+        category: "/language:cpp"
