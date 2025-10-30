@@ -35,7 +35,19 @@ To configure your WiFi credentials:
 
 3. The `config.h` file is gitignored to prevent accidentally committing your credentials.
 
-Note: Never commit your `main/config.h` file with real credentials to version control.
+**Note:** Never commit your `main/config.h` file with real credentials to version control.
+
+### CI/CD WiFi Configuration
+
+For automated builds in CI/CD environments, WiFi credentials can be passed as environment variables:
+
+```bash
+export CI_WIFI_SSID="test_ssid"
+export CI_WIFI_PASS="test_password"
+idf.py build
+```
+
+The build system will automatically use these environment variables to define the WiFi credentials during compilation, overriding the placeholder values in `config.h`.
 
 ## Build Instructions
 
