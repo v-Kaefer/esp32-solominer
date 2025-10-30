@@ -18,18 +18,12 @@ jobs:
       with:
         submodules: 'recursive'
     
-    - name: Setup ESP-IDF
+    - name: Build with ESP-IDF
       uses: espressif/esp-idf-ci-action@v1
       with:
         esp_idf_version: v5.1.2
         target: esp32s3
         path: '.'
-    
-    - name: Build project
-      run: |
-        . $IDF_PATH/export.sh
-        idf.py set-target esp32s3
-        idf.py build
     
     - name: Archive build artifacts
       if: success()
