@@ -7,6 +7,16 @@
   - changed-files:
     - any-glob-to-any-file: ['VERSION', '.github/scripts/version.sh', '.github/workflows/release.yml', '.github/workflows/auto-tag.yml']
 
+# Version types based on target branch
+'🔬 alpha':
+  - base-branch: ['develop']
+
+'🧪 beta':
+  - base-branch: ['main']
+
+'🎯 release':
+  - base-branch: ['release']
+
 # Documentation
 '📝 documentation':
   - changed-files:

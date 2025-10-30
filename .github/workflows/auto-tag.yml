@@ -5,7 +5,7 @@ on:
     branches:
       - main
       - develop
-      - 'release/**'  # Auto-tag on release branches
+      - release
     paths:
       - 'main/**'
       - 'CMakeLists.txt'
@@ -78,7 +78,25 @@ jobs:
             exit 0
           fi
           
-          TAG_NAME="v$VERSION"
+          # Determine version suffix based on branch
+          BRANCH_NAME="${{ github.ref_name }}"
+          VERSION_SUFFIX=""
+          
+          if [[ "$BRANCH_NAME" == "develop" ]]; then
+            VERSION_SUFFIX="-alpha"
+            echo "Branch is develop, adding alpha suffix"
+          elif [[ "$BRANCH_NAME" == "main" ]]; then
+            VERSION_SUFFIX="-beta"
+            echo "Branch is main, adding beta suffix"
+          elif [[ "$BRANCH_NAME" == "release" ]]; then
+            VERSION_SUFFIX=""
+            echo "Branch is release, using full version"
+          else
+            echo "Branch $BRANCH_NAME does not match tagging criteria, skipping"
+            exit 0
+          fi
+          
+          TAG_NAME="v$VERSION$VERSION_SUFFIX"
           
           # Check if tag already exists
           if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
@@ -92,7 +110,7 @@ jobs:
             exit 0
           fi
           
-          echo "Creating tag $TAG_NAME for firmware version $VERSION"
-          git tag -a "$TAG_NAME" -m "ESP32 Solo Miner firmware v$VERSION"
+          echo "Creating tag $TAG_NAME for firmware version $VERSION$VERSION_SUFFIX"
+          git tag -a "$TAG_NAME" -m "ESP32 Solo Miner firmware v$VERSION$VERSION_SUFFIX"
           git push origin "$TAG_NAME"
           echo "Tag $TAG_NAME created and pushed successfully"
