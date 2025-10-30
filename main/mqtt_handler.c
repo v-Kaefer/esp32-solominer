@@ -1,5 +1,6 @@
 #include "mqtt_handler.h"
 #include <string.h>
+#include <inttypes.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
@@ -127,20 +128,20 @@ esp_err_t mqtt_publish_mining_stats(float hashrate, uint64_t total_hashes, uint3
     }
     
     // Publish total hashes
-    snprintf(payload, sizeof(payload), "%llu", total_hashes);
+    snprintf(payload, sizeof(payload), "%" PRIu64, total_hashes);
     msg_id = esp_mqtt_client_publish(mqtt_client, MQTT_TOPIC_TOTAL_HASHES, payload, 0, 0, 0);
     if (msg_id < 0) {
         ESP_LOGW(TAG, "Failed to publish total hashes");
     }
     
     // Publish best difficulty
-    snprintf(payload, sizeof(payload), "%lu", best_difficulty);
+    snprintf(payload, sizeof(payload), "%" PRIu32, best_difficulty);
     msg_id = esp_mqtt_client_publish(mqtt_client, MQTT_TOPIC_BEST_DIFFICULTY, payload, 0, 0, 0);
     if (msg_id < 0) {
         ESP_LOGW(TAG, "Failed to publish best difficulty");
     }
     
-    ESP_LOGD(TAG, "Published mining stats - Rate: %.2f H/s, Total: %llu, Best: %lu", 
+    ESP_LOGD(TAG, "Published mining stats - Rate: %.2f H/s, Total: %" PRIu64 ", Best: %" PRIu32, 
              hashrate, total_hashes, best_difficulty);
     
     return ESP_OK;
