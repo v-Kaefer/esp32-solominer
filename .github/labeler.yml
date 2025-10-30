@@ -20,12 +20,32 @@
 # Configuration files
 '⚙️ configuration':
   - changed-files:
-    - any-glob-to-any-file: ['**/*.yaml', '**/*.yml', '**/*.toml', '**/*.config.*', '**/package.yaml', '.github/labels.json']
+    - any-glob-to-any-file: ['**/*.yaml', '**/*.yml', '**/*.toml', '**/*.config.*', '**/sdkconfig*', '.github/labels.json']
 
-# AUR Package files
-'📦 package':
+# Hardware and GPIO
+'⚙️ hardware':
   - changed-files:
-    - any-glob-to-any-file: ['**/PKGBUILD', '**/.SRCINFO', 'packages/**/*']
+    - any-glob-to-any-file: ['**/gpio*', '**/ssd1306*', '**/i2c*', '**/spi*', '**/hardware*']
+
+# Bitcoin Mining
+'⛏️ mining':
+  - changed-files:
+    - any-glob-to-any-file: ['**/mining*', '**/miner*', '**/btc*', '**/bitcoin*', '**/hash*']
+
+# Display/OLED
+'🖥️ display':
+  - changed-files:
+    - any-glob-to-any-file: ['**/ssd1306*', '**/oled*', '**/display*', '**/screen*', '**/ui*']
+
+# Networking
+'📡 networking':
+  - changed-files:
+    - any-glob-to-any-file: ['**/wifi*', '**/network*', '**/http*', '**/tcp*', '**/lwip*']
+
+# Firmware
+'🔧 firmware':
+  - changed-files:
+    - any-glob-to-any-file: ['main/**/*', '**/CMakeLists.txt', '**/sdkconfig*', '**/Kconfig*']
 
 # Tests (if any test files are added in the future)
 '🧪 tests':
@@ -33,8 +53,8 @@
     - any-glob-to-any-file: ['**/*test*', '**/*spec*', '**/tests/**/*']
 
 # Branch-based labels (matching the repository's branching strategy)
-'👍 new':
-  - head-branch: ['^package/']
+'✨ new feature':
+  - head-branch: ['^feature/', '^feat/']
 
 '✨ feature':
   - head-branch: ['^feat/', '^feature/']
@@ -58,6 +78,5 @@
 
 '🤖 copilot':
   - head-branch: ['^copilot/']
-
-'🤖 renovate':
-  - head-branch: ['^package/renovate-']
+  - changed-files:
+    - any-glob-to-any-file: ['.github/agents/**/*', '**/.copilot*', '**/copilot.yml', '**/copilot.yaml', '**/*copilot*']

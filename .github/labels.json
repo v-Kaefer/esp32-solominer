@@ -50,9 +50,9 @@
     "description": "Dependency updates"
   },
   {
-    "name": "📦 package",
+    "name": "⚙️ hardware",
     "color": "FFD54F",
-    "description": "AUR package changes (PKGBUILD, .SRCINFO)"
+    "description": "Hardware-related changes (ESP32, display, GPIO)"
   },
   {
     "name": "🤖 automated",
@@ -95,14 +95,24 @@
     "description": "Security-related changes"
   },
   {
-    "name": "🎨 styling",
-    "color": "4FC3F7",
-    "description": "CSS, styling, and UI changes"
+    "name": "⛏️ mining",
+    "color": "FFD700",
+    "description": "Bitcoin mining logic and algorithms"
   },
   {
-    "name": "💻 web-app",
+    "name": "🖥️ display",
     "color": "26C6DA",
-    "description": "Changes to the web application"
+    "description": "OLED display and UI changes"
+  },
+  {
+    "name": "📡 networking",
+    "color": "4FC3F7",
+    "description": "WiFi, network, and connectivity changes"
+  },
+  {
+    "name": "🔧 firmware",
+    "color": "00ACC1",
+    "description": "ESP32 firmware and ESP-IDF changes"
   },
   {
     "name": "📚 docs",
@@ -190,9 +200,9 @@
     "description": "Patch or small fix"
   },
   {
-    "name": "👍 new",
+    "name": "✨ new feature",
     "color": "00E676",
-    "description": "New package being added to the repository"
+    "description": "New feature or component being added"
   },
   {
     "name": "✅ status: accepted",
