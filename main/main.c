@@ -18,12 +18,7 @@
 #include "driver/i2c.h"
 #include "driver/gpio.h"
 #include "esp_log.h"
-#include "../.env"
-
-
-// WiFi Configuration
-#define WIFI_SSID $ENV{WIFI_SSID_VAR}
-#define WIFI_PASS $ENV{WIFI_PASS_VAR}
+#include "config.h"
 
 // I2C Configuration for OLED
 #define I2C_MASTER_SCL_IO    8    // GPIO22 for SCL
