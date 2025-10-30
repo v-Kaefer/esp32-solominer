@@ -1,0 +1,1 @@
+Project to test a setup for ESP32 S3 N16R8 as a bitcoin solo miner or ticket miner.
