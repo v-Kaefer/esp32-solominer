@@ -1,38 +1,70 @@
+# ESP32-S3 Bitcoin Solo Miner
+
 Project to test a setup for ESP32 S3 N16R8 as a bitcoin solo miner or ticket miner.
 
-IDE: VSCode, using the ESP-IDF: Explorer extension.
+[![Build](https://github.com/v-Kaefer/esp32-solominer/actions/workflows/build.yml/badge.svg)](https://github.com/v-Kaefer/esp32-solominer/actions/workflows/build.yml)
+[![CodeQL](https://github.com/v-Kaefer/esp32-solominer/actions/workflows/codeql.yml/badge.svg)](https://github.com/v-Kaefer/esp32-solominer/actions/workflows/codeql.yml)
+[![Static Analysis](https://github.com/v-Kaefer/esp32-solominer/actions/workflows/static-analysis.yml/badge.svg)](https://github.com/v-Kaefer/esp32-solominer/actions/workflows/static-analysis.yml)
 
-Project first auto build for ESP32, then changed to ESP32S3 (via ESP-PROG).
+**IDE:** VSCode, using the ESP-IDF: Explorer extension.
 
-# _Sample project_
+**Hardware:** ESP32-S3-N16R8 (via ESP-PROG)
 
-(See the README.md file in the upper level 'examples' directory for more information about examples.)
+## 🎯 Project Goals
 
-This is the simplest buildable example. The example is used by command `idf.py create-project`
-that copies the project to user specified path and set it's name. For more information follow the [docs page](https://docs.espressif.com/projects/esp-idf/en/latest/api-guides/build-system.html#start-a-new-project)
+This is a learning project focused on:
+- Learning C and Assembly programming
+- Developing low-level, hardware-effective code
+- Ensuring safety, privacy, and modularity
+- Building an ESP32 Bitcoin miner from scratch
 
+## WiFi Configuration
 
+To configure your WiFi credentials:
 
-## How to use example
-We encourage the users to use the example as a template for the new projects.
-A recommended way is to follow the instructions on a [docs page](https://docs.espressif.com/projects/esp-idf/en/latest/api-guides/build-system.html#start-a-new-project).
+1. Copy the example configuration file:
+   ```bash
+   cp main/config.h.example main/config.h
+   ```
 
-## Example folder contents
+2. Edit `main/config.h` and update the WiFi credentials:
+   ```c
+   #define WIFI_SSID "your_wifi_ssid"
+   #define WIFI_PASS "your_wifi_password"
+   ```
 
-The project **sample_project** contains one source file in C language [main.c](main/main.c). The file is located in folder [main](main).
+3. The `config.h` file is gitignored to prevent accidentally committing your credentials.
 
-ESP-IDF projects are built using CMake. The project build configuration is contained in `CMakeLists.txt`
-files that provide set of directives and instructions describing the project's source files and targets
-(executable, library, or both). 
+Note: Never commit your `main/config.h` file with real credentials to version control.
 
-Below is short explanation of remaining files in the project folder.
+## Build Instructions
 
-```
-├── CMakeLists.txt
-├── main
-│   ├── CMakeLists.txt
-│   └── main.c
-└── README.md                  This is the file you are currently reading
-```
-Additionally, the sample project contains Makefile and component.mk files, used for the legacy Make based build system. 
-They are not used or needed when building with CMake and idf.py.
+1. Install ESP-IDF v5.1.2 or later
+2. Set up your WiFi configuration (see above)
+3. Build the project:
+   ```bash
+   idf.py set-target esp32s3
+   idf.py build
+   ```
+4. Flash to your ESP32-S3:
+   ```bash
+   idf.py flash monitor
+   ```
+
+## CI/CD
+
+This project uses GitHub Actions for continuous integration. See [CI_CD_SETUP.md](CI_CD_SETUP.md) for details.
+
+All pull requests must pass:
+- ✅ Build verification
+- 🔍 Static code analysis
+- 🔒 Security scanning
+- 📝 Code quality checks
+
+## Contributing
+
+See our [pull request template](.github/pull_request_template.md) and [issue templates](.github/ISSUE_TEMPLATE/) for contribution guidelines.
+
+## License
+
+This is a learning project. Feel free to use and modify for educational purposes.
