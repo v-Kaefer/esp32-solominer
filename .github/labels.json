@@ -125,6 +125,21 @@
     "description": "Version management and releases"
   },
   {
+    "name": "🔬 alpha",
+    "color": "FFA726",
+    "description": "Alpha version - development branch"
+  },
+  {
+    "name": "🧪 beta",
+    "color": "42A5F5",
+    "description": "Beta version - main branch"
+  },
+  {
+    "name": "🎯 release",
+    "color": "43A047",
+    "description": "Release version - production ready"
+  },
+  {
     "name": "🚀 ready",
     "color": "388E3C",
     "description": "Ready for review and merge"
