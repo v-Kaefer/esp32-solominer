@@ -15,7 +15,7 @@
   - base-branch: ['main']
 
 '🎯 release':
-  - base-branch: ['^release/']
+  - base-branch: ['release']
 
 # Documentation
 '📝 documentation':
