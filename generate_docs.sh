@@ -25,9 +25,8 @@ if ! command -v dot &> /dev/null; then
 fi
 
 echo "Generating documentation..."
-doxygen Doxyfile
 
-if [ $? -eq 0 ]; then
+if doxygen Doxyfile; then
     echo ""
     echo "✓ Documentation generated successfully!"
     echo ""
