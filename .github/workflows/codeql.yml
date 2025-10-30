@@ -38,15 +38,20 @@ jobs:
       id: cache-esp-idf
       with:
         path: ~/esp/esp-idf
-        key: esp-idf-v5.1.2-esp32s3-${{ runner.os }}
+        key: esp-idf-v5.1.2-esp32s3-${{ runner.os }}-${{ hashFiles('**/CMakeLists.txt') }}
+        restore-keys: |
+          esp-idf-v5.1.2-esp32s3-${{ runner.os }}-
     
-    - name: Set up ESP-IDF
+    - name: Clone ESP-IDF
       if: steps.cache-esp-idf.outputs.cache-hit != 'true'
       run: |
         mkdir -p ~/esp
         cd ~/esp
         git clone --recursive --depth 1 --branch v5.1.2 https://github.com/espressif/esp-idf.git
-        cd esp-idf
+    
+    - name: Install ESP-IDF toolchain
+      run: |
+        cd ~/esp/esp-idf
         ./install.sh esp32s3
     
     - name: Create config.h from example
