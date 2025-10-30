@@ -1,0 +1,227 @@
+[
+  {
+    "name": "✨ feature",
+    "color": "1793D1",
+    "description": "New feature or enhancement"
+  },
+  {
+    "name": "🐛 bug",
+    "color": "D32F2F",
+    "description": "Something isn't working"
+  },
+  {
+    "name": "🚑 hotfix",
+    "color": "B71C1C",
+    "description": "Critical fix that needs immediate attention"
+  },
+  {
+    "name": "📝 documentation",
+    "color": "FFFFFF",
+    "description": "Improvements or additions to documentation"
+  },
+  {
+    "name": "♻️ refactor",
+    "color": "7CB342",
+    "description": "Code refactoring without changing functionality"
+  },
+  {
+    "name": "⚡ performance",
+    "color": "F57C00",
+    "description": "Performance improvements"
+  },
+  {
+    "name": "🧪 tests",
+    "color": "0277BD",
+    "description": "Test additions or modifications"
+  },
+  {
+    "name": "🔄 workflow",
+    "color": "4FC3F7",
+    "description": "GitHub Actions workflows and CI/CD"
+  },
+  {
+    "name": "⚙️ configuration",
+    "color": "607D8B",
+    "description": "Configuration file changes"
+  },
+  {
+    "name": "📦 dependencies",
+    "color": "00ACC1",
+    "description": "Dependency updates"
+  },
+  {
+    "name": "📦 package",
+    "color": "FFD54F",
+    "description": "AUR package changes (PKGBUILD, .SRCINFO)"
+  },
+  {
+    "name": "🤖 automated",
+    "color": "7E57C2",
+    "description": "Automated changes from workflows"
+  },
+  {
+    "name": "🤖 renovate",
+    "color": "9575CD",
+    "description": "Renovate bot updates"
+  },
+  {
+    "name": "🤖 copilot",
+    "color": "BA68C8",
+    "description": "GitHub Copilot assisted changes"
+  },
+  {
+    "name": "🔄 update",
+    "color": "64B5F6",
+    "description": "Package or dependency updates"
+  },
+  {
+    "name": "🚨 major-update",
+    "color": "FF6F00",
+    "description": "Major version update requiring manual review"
+  },
+  {
+    "name": "🔄 minor-update",
+    "color": "29B6F6",
+    "description": "Minor version update"
+  },
+  {
+    "name": "🔧 patch-update",
+    "color": "66BB6A",
+    "description": "Patch version update"
+  },
+  {
+    "name": "🔒 security",
+    "color": "C62828",
+    "description": "Security-related changes"
+  },
+  {
+    "name": "🎨 styling",
+    "color": "4FC3F7",
+    "description": "CSS, styling, and UI changes"
+  },
+  {
+    "name": "💻 web-app",
+    "color": "26C6DA",
+    "description": "Changes to the web application"
+  },
+  {
+    "name": "📚 docs",
+    "color": "42A5F5",
+    "description": "Changes to the documentation"
+  },
+  {
+    "name": "🏷️ version",
+    "color": "558B2F",
+    "description": "Version management and releases"
+  },
+  {
+    "name": "🚀 ready",
+    "color": "388E3C",
+    "description": "Ready for review and merge"
+  },
+  {
+    "name": "🚧 work in progress",
+    "color": "FFA726",
+    "description": "Work in progress, not ready for review"
+  },
+  {
+    "name": "❌ blocked",
+    "color": "E53935",
+    "description": "Blocked by another issue or PR"
+  },
+  {
+    "name": "⏸️ on hold",
+    "color": "8E24AA",
+    "description": "On hold, postponed"
+  },
+  {
+    "name": "❓ question",
+    "color": "AB47BC",
+    "description": "Further information is requested"
+  },
+  {
+    "name": "💬 discussion",
+    "color": "7E57C2",
+    "description": "Discussion needed"
+  },
+  {
+    "name": "👍 good first issue",
+    "color": "66BB6A",
+    "description": "Good for newcomers"
+  },
+  {
+    "name": "🆘 help wanted",
+    "color": "26A69A",
+    "description": "Extra attention is needed"
+  },
+  {
+    "name": "🔥 priority: critical",
+    "color": "D32F2F",
+    "description": "Critical priority"
+  },
+  {
+    "name": "⚠️ priority: high",
+    "color": "F57C00",
+    "description": "High priority"
+  },
+  {
+    "name": "🔸 priority: medium",
+    "color": "FDD835",
+    "description": "Medium priority"
+  },
+  {
+    "name": "🔹 priority: low",
+    "color": "9CCC65",
+    "description": "Low priority"
+  },
+  {
+    "name": "🎯 scope: major",
+    "color": "1976D2",
+    "description": "Major scope of work"
+  },
+  {
+    "name": "📊 scope: minor",
+    "color": "4DD0E1",
+    "description": "Minor scope of work"
+  },
+  {
+    "name": "🔧 scope: patch",
+    "color": "81C784",
+    "description": "Patch or small fix"
+  },
+  {
+    "name": "👍 new",
+    "color": "00E676",
+    "description": "New package being added to the repository"
+  },
+  {
+    "name": "✅ status: accepted",
+    "color": "43A047",
+    "description": "Accepted and ready to proceed"
+  },
+  {
+    "name": "👀 status: review needed",
+    "color": "FFB300",
+    "description": "Review needed"
+  },
+  {
+    "name": "🎉 status: completed",
+    "color": "66BB6A",
+    "description": "Completed"
+  },
+  {
+    "name": "❌ wontfix",
+    "color": "78909C",
+    "description": "This will not be worked on"
+  },
+  {
+    "name": "🔀 duplicate",
+    "color": "90A4AE",
+    "description": "This issue or pull request already exists"
+  },
+  {
+    "name": "❌ invalid",
+    "color": "BDBDBD",
+    "description": "This doesn't seem right"
+  }
+]

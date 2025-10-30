@@ -1,0 +1,186 @@
+name: Auto Tag Package Updates
+
+on:
+  push:
+    branches:
+      - develop
+      - 'package/**'  # Auto-tag on package branches
+    paths:
+      - 'packages/**'
+  pull_request:
+    branches:
+      - develop
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'packages/**'
+  workflow_dispatch:
+    inputs:
+      create_missing_tags:
+        description: 'Create tags for packages that do not have tags yet'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  auto-tag:
+    name: Auto-tag updated packages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+      - name: Configure git
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+
+      - name: Create missing tags (manual trigger)
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.create_missing_tags == 'true'
+        run: |
+          # Function to extract version from PKGBUILD
+          extract_version() {
+            grep -m1 "^$1=" "$2" | cut -d'=' -f2 | sed "s/[\"']//g"
+          }
+          
+          TAGS_CREATED=0
+          
+          # Find all packages
+          for PACKAGE_DIR in packages/*/; do
+            PACKAGE=$(basename "$PACKAGE_DIR")
+            PKGBUILD_PATH="packages/$PACKAGE/PKGBUILD"
+            
+            if [ ! -f "$PKGBUILD_PATH" ]; then
+              echo "PKGBUILD not found for $PACKAGE, skipping"
+              continue
+            fi
+            
+            # Extract version from PKGBUILD
+            VERSION=$(extract_version pkgver "$PKGBUILD_PATH")
+            
+            if [ -z "$VERSION" ]; then
+              echo "Could not extract version for $PACKAGE, skipping"
+              continue
+            fi
+            
+            TAG_NAME="$PACKAGE/v$VERSION"
+            
+            # Check if tag already exists
+            if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
+              echo "Tag $TAG_NAME already exists, skipping"
+              continue
+            fi
+            
+            echo "Creating missing tag $TAG_NAME for package $PACKAGE"
+            git tag -a "$TAG_NAME" -m "Initial release v$VERSION of $PACKAGE"
+            echo "Tag $TAG_NAME created successfully"
+            TAGS_CREATED=$((TAGS_CREATED + 1))
+          done
+          
+          # Push only if we created new tags
+          if [ $TAGS_CREATED -gt 0 ]; then
+            echo "Pushing $TAGS_CREATED new tag(s)"
+            git push origin --tags
+          else
+            echo "No new tags to push"
+          fi
+
+      - name: Detect changed packages and create tags
+        if: github.event_name == 'push' || github.event_name == 'pull_request'
+        run: |
+          # Function to extract version from PKGBUILD
+          extract_version() {
+            grep -m1 "^$1=" "$2" | cut -d'=' -f2 | sed "s/[\"']//g"
+          }
+          
+          TAGS_CREATED=0
+          
+          # Determine base and head commits based on event type
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BEFORE="${{ github.event.pull_request.base.sha }}"
+            AFTER="${{ github.event.pull_request.head.sha }}"
+            echo "PR mode: comparing base ($BEFORE) with head ($AFTER)"
+          else
+            BEFORE="${{ github.event.before }}"
+            AFTER="${{ github.sha }}"
+            echo "Push mode: comparing $BEFORE with $AFTER"
+          fi
+          
+          # Get list of changed package directories
+          CHANGED_PACKAGES=$(git diff --name-only $BEFORE $AFTER | grep '^packages/' | cut -d'/' -f2 | sort -u)
+          
+          if [ -z "$CHANGED_PACKAGES" ]; then
+            echo "No packages changed"
+            exit 0
+          fi
+          
+          echo "Changed packages: $CHANGED_PACKAGES"
+          
+          # For each changed package, check if version changed and create tag
+          for PACKAGE in $CHANGED_PACKAGES; do
+            echo "Processing package: $PACKAGE"
+            
+            PKGBUILD_PATH="packages/$PACKAGE/PKGBUILD"
+            
+            if [ ! -f "$PKGBUILD_PATH" ]; then
+              echo "PKGBUILD not found for $PACKAGE, skipping"
+              continue
+            fi
+            
+            # Extract current version and pkgrel from PKGBUILD
+            CURRENT_VERSION=$(extract_version pkgver "$PKGBUILD_PATH")
+            CURRENT_PKGREL=$(extract_version pkgrel "$PKGBUILD_PATH")
+            
+            if [ -z "$CURRENT_VERSION" ]; then
+              echo "Could not extract version for $PACKAGE, skipping"
+              continue
+            fi
+            
+            echo "Current version: $CURRENT_VERSION (pkgrel: $CURRENT_PKGREL)"
+            
+            # Check if PKGBUILD was actually changed
+            if git diff --quiet $BEFORE $AFTER -- "$PKGBUILD_PATH"; then
+              echo "PKGBUILD not changed for $PACKAGE, skipping tag creation"
+              continue
+            fi
+            
+            # Get previous version if it existed
+            PREV_VERSION=""
+            if git show $BEFORE:"$PKGBUILD_PATH" > /tmp/prev_pkgbuild 2>/dev/null; then
+              PREV_VERSION=$(extract_version pkgver /tmp/prev_pkgbuild)
+              PREV_PKGREL=$(extract_version pkgrel /tmp/prev_pkgbuild)
+              echo "Previous version: $PREV_VERSION (pkgrel: $PREV_PKGREL)"
+            fi
+            
+            # Create tag if version changed or pkgrel changed or new package
+            if [ "$CURRENT_VERSION" != "$PREV_VERSION" ] || [ "$CURRENT_PKGREL" != "$PREV_PKGREL" ] || [ -z "$PREV_VERSION" ]; then
+              TAG_NAME="$PACKAGE/v$CURRENT_VERSION"
+              
+              # Check if tag already exists
+              if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
+                echo "Tag $TAG_NAME already exists, skipping"
+                continue
+              fi
+              
+              echo "Creating tag $TAG_NAME"
+              git tag -a "$TAG_NAME" -m "Release v$CURRENT_VERSION of $PACKAGE"
+              echo "Tag $TAG_NAME created successfully"
+              TAGS_CREATED=$((TAGS_CREATED + 1))
+            else
+              echo "Version unchanged for $PACKAGE, no tag created"
+            fi
+          done
+          
+          # Save tags created count for next step
+          echo "TAGS_CREATED=$TAGS_CREATED" >> $GITHUB_ENV
+          
+      - name: Push tags (auto-tag on push or PR)
+        if: (github.event_name == 'push' || github.event_name == 'pull_request') && env.TAGS_CREATED != '0'
+        run: |
+          # Push all new tags
+          git push origin --tags
