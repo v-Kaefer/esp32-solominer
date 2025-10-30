@@ -8,9 +8,11 @@ When you create a pull request, the following checks will run automatically:
 1. ✅ **Build Check** - Compiles your code for ESP32-S3
 2. 🔍 **Static Analysis** - Checks for common bugs and code issues
 3. 🔒 **Security Scan** - Analyzes code for vulnerabilities
-4. 📝 **Code Quality** - Validates formatting and best practices
+4. 📝 **Code Quality** - Validates formatting and best practices (auto-creates issues with fixes if failures occur)
 5. 🧪 **Test Coverage** - Suggests tests for new features
 6. 📚 **Documentation** - Checks if docs need updating
+
+💡 **New:** Code quality failures automatically create GitHub issues with detailed fix suggestions and @github/copilot assistance!
 
 ## 📊 Workflow Status
 
@@ -41,6 +43,8 @@ Checks for code standards and best practices.
 - Runs on: Push to main, Pull requests
 - Duration: ~1 minute
 - Checks: Whitespace, encodings, unsafe functions
+- **Auto-Fix:** Creates GitHub issues with fix suggestions when checks fail on PRs
+- **Copilot Integration:** Automatically mentions @github/copilot for AI-assisted fixes
 
 ### Test Coverage
 Monitors code changes and suggests tests.
@@ -87,6 +91,13 @@ Ensures documentation stays current.
 - Check Security tab for details
 - Prioritize high-severity issues
 - Add fixes in separate commits
+
+### Code Quality Issues
+- **Automated Issue Creation:** When code quality checks fail on a PR, an issue is automatically created
+- **Issue Contents:** Detailed explanation of what needs fixing with file/line references
+- **Copilot Assistance:** Tagged issues include @github/copilot mention for AI-assisted fixes
+- **Duplicate Prevention:** Only one issue per PR is created; subsequent failures add comments
+- **Resolution:** Fix the issues listed, then close the automated issue once checks pass
 
 ## 📖 Documentation
 
