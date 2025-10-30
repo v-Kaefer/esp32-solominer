@@ -26,7 +26,7 @@
 // Bitcoin Mining Configuration
 #define BTC_ADDRESS "1CW2jT4gwqyWmbAZ8HjmTLBaVg8biUiWW7"
 
-//static const char *TAG = "BTC_MINER";
+static const char *TAG = "BTC_MINER";
 
 // Mining statistics
 static uint64_t total_hashes = 0;
@@ -277,6 +277,7 @@ void mining_task(void *pvParameters)
 
 #define I2C_SWEEP_TAG     "I2C_SWEEP"
 #define I2C_SWEEP_PORT    I2C_NUM_0
+#define I2C_PORT          I2C_NUM_0
 #define I2C_SWEEP_FREQ_HZ 100000  // 100 kHz p/ evitar ruído no teste
 
 // Candidatos seguros no S3 (evita 0: strap, 19/20: USB D-/D+, 46: input-only)
@@ -493,7 +494,7 @@ void app_main(void)
         ret = nvs_flash_init();
     }
     ESP_ERROR_CHECK(ret);
-    */
+    
     // Initialize I2C
     ESP_LOGI(TAG, "Initializing I2C...");
     //ESP_ERROR_CHECK(i2c_master_init());
