@@ -103,6 +103,14 @@ void test_my_function(void)
     TEST_ASSERT_EQUAL(expected, actual);
 }
 ```
+## GPIO Pin Test Tool
+
+If you need to identify the correct I2C pins on your ESP32 board, use the `GPIO_Pin_Test` tool located in the `GPIO_Pin_Test/` directory. This standalone project helps you:
+- Find working SDA/SCL pin pairs
+- Scan for I2C device addresses
+- Test specific pin configurations
+
+See [GPIO_Pin_Test/README.md](GPIO_Pin_Test/README.md) for detailed instructions.
 
 ## CI/CD
 
