@@ -315,42 +315,20 @@ void app_main(void)
     
     // Initialize I2C
     ESP_LOGI(TAG, "Initializing I2C...");
-    //ESP_ERROR_CHECK(i2c_master_init());
-    // 1. Sobe I2C estável
     i2c_init_fixed();
-    
-    i2c_master_init_ssd1306(&dev, I2C_MASTER_NUM, 128, 64, 0x3C);
 
     // Initialize OLED
     ESP_LOGI(TAG, "Initializing OLED...");
     i2c_master_init_ssd1306(&dev, I2C_MASTER_NUM, 128, 64, 0x3C);
-    /*for (uint8_t a = 1; a < 0x7F; a++) {
-        i2c_cmd_handle_t c = i2c_cmd_link_create();
-        i2c_master_start(c);
-        i2c_master_write_byte(c, (a << 1) | I2C_MASTER_WRITE, true);
-        i2c_master_stop(c);
-        esp_err_t r = i2c_master_cmd_begin(I2C_MASTER_NUM, c, pdMS_TO_TICKS(50));
-        i2c_cmd_link_delete(c);
-        if (r == ESP_OK) {
-            ESP_LOGI("I2C", "ACHOU em 0x%02X", a);
-        } else {
-            // descomente se quiser ver o motivo
-            ESP_LOGW("I2C", "0x%02X -> %s", a, esp_err_to_name(r));
-        }
-    }*/
-
-    //ssd1306_clear_screen(&dev, false);
     ssd1306_contrast(&dev, 0xff);
     
     ssd1306_display_text(&dev, 0, "ESP32-S3 Miner", 14, false);
     ssd1306_display_text(&dev, 2, "Initializing...", 15, false);
     
-    // Initialize WiFi
-    /*ESP_LOGI(TAG, "Initializing WiFi...");
-    wifi_init();
-    
-    ssd1306_display_text(&dev, 3, "WiFi Connecting...", 18, false);
-    vTaskDelay(pdMS_TO_TICKS(5000));
+    // Passive mining mode - no WiFi required
+    ESP_LOGI(TAG, "Starting passive mining mode...");
+    ssd1306_display_text(&dev, 3, "Passive Mining", 14, false);
+    vTaskDelay(pdMS_TO_TICKS(2000));
     
     ssd1306_display_text(&dev, 4, "Starting mining!", 16, false);
     vTaskDelay(pdMS_TO_TICKS(2000));
@@ -366,5 +344,5 @@ void app_main(void)
         1  // Pin to Core 1
     );
     
-    ESP_LOGI(TAG, "Mining task created");*/
+    ESP_LOGI(TAG, "Mining task created");
 }
