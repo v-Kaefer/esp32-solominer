@@ -1,6 +1,7 @@
 #include <string.h>
 #include "unity.h"
 #include "ssd1306.h"
+#include "../driver/i2c_master.h"
 
 // Mock I2C port for testing
 #define TEST_I2C_PORT I2C_NUM_0
@@ -28,6 +29,7 @@ void test_ssd1306_init_structure(void)
     TEST_ASSERT_EQUAL(128, test_dev.width);
     TEST_ASSERT_EQUAL(64, test_dev.height);
     TEST_ASSERT_EQUAL(8, test_dev.pages);
+    TEST_ASSERT_EQUAL(DISPLAY_DRIVER_SSD1306, test_dev.driver_ic);  // Default driver IC
 }
 
 // Test device initialization with different dimensions
@@ -39,6 +41,19 @@ void test_ssd1306_init_different_size(void)
     TEST_ASSERT_EQUAL(32, test_dev.height);
     TEST_ASSERT_EQUAL(4, test_dev.pages);
     TEST_ASSERT_EQUAL(0x3D, test_dev.i2c_addr);
+}
+
+// Test SSD1315 initialization
+void test_ssd1306_init_ssd1315(void)
+{
+    i2c_master_init_ssd1306_ex(&test_dev, TEST_I2C_PORT, 128, 64, 0x3C, DISPLAY_DRIVER_SSD1315);
+    
+    TEST_ASSERT_EQUAL(TEST_I2C_PORT, test_dev.i2c_port);
+    TEST_ASSERT_EQUAL(0x3C, test_dev.i2c_addr);
+    TEST_ASSERT_EQUAL(128, test_dev.width);
+    TEST_ASSERT_EQUAL(64, test_dev.height);
+    TEST_ASSERT_EQUAL(8, test_dev.pages);
+    TEST_ASSERT_EQUAL(DISPLAY_DRIVER_SSD1315, test_dev.driver_ic);
 }
 
 // Test pages calculation
@@ -77,6 +92,7 @@ void test_ssd1306_functions(void)
 {
     RUN_TEST(test_ssd1306_init_structure);
     RUN_TEST(test_ssd1306_init_different_size);
+    RUN_TEST(test_ssd1306_init_ssd1315);
     RUN_TEST(test_ssd1306_pages_calculation);
     RUN_TEST(test_ssd1306_device_not_null);
 }

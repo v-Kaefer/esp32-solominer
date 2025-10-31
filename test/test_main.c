@@ -27,6 +27,7 @@ void app_main(void)
     // Test functions will be registered here
     unity_run_tests_by_tag("[mining]", false);
     unity_run_tests_by_tag("[ssd1306]", false);
+    unity_run_tests_by_tag("[i2c_master]", false);
     
     UNITY_END();
     

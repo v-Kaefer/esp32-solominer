@@ -15,6 +15,7 @@
 #include "driver/i2c.h"
 #include "driver/gpio.h"
 #include "ssd1306.h"
+#include "driver/i2c_master.h"
 #include "config.h"
 
 // I2C Configuration for OLED
@@ -95,24 +96,21 @@ void wifi_init(void)
 
 #endif // WIFI_SSID
 
-// Initialize I2C for OLED
-esp_err_t i2c_master_init(void)
+// Initialize I2C for OLED using new modular driver
+esp_err_t i2c_master_init_legacy(void)
 {
-    i2c_config_t conf = {
-        .mode = I2C_MODE_MASTER,
+    // Use new modular I2C master driver
+    i2c_master_config_t config = {
+        .i2c_port = I2C_MASTER_NUM,
         .sda_io_num = I2C_MASTER_SDA_IO,
         .scl_io_num = I2C_MASTER_SCL_IO,
-        .sda_pullup_en = GPIO_PULLUP_ENABLE,
-        .scl_pullup_en = GPIO_PULLUP_ENABLE,
-        .master.clk_speed = I2C_MASTER_FREQ_HZ,
+        .clk_speed = I2C_MASTER_FREQ_HZ,
+        .sda_pullup_en = true,
+        .scl_pullup_en = true,
+        .timeout_ms = 1000
     };
     
-    esp_err_t err = i2c_param_config(I2C_MASTER_NUM, &conf);
-    if (err != ESP_OK) {
-        return err;
-    }
-    
-    return i2c_driver_install(I2C_MASTER_NUM, conf.mode, 0, 0, 0);
+    return i2c_master_init(&config);
 }
 
 // Double SHA256 hash
@@ -282,24 +280,7 @@ void mining_task(void *pvParameters)
 
 
 
-static void i2c_init_fixed(void)
-{
-    i2c_config_t conf = {
-        .mode = I2C_MODE_MASTER,
-        .sda_io_num    = I2C_MASTER_SDA_IO,
-        .sda_pullup_en = GPIO_PULLUP_ENABLE,
-        .scl_io_num    = I2C_MASTER_SCL_IO,
-        .scl_pullup_en = GPIO_PULLUP_ENABLE,
-        .master.clk_speed = I2C_MASTER_FREQ_HZ,
-    };
 
-    ESP_ERROR_CHECK(i2c_param_config(I2C_MASTER_NUM, &conf));
-    ESP_ERROR_CHECK(i2c_driver_install(I2C_MASTER_NUM,
-                                       conf.mode,
-                                       0, // rx buf disabled master
-                                       0, // tx buf disabled master
-                                       0));
-}
 
 void app_main(void)
 {
@@ -313,17 +294,38 @@ void app_main(void)
     }
     ESP_ERROR_CHECK(ret);
     
-    // Initialize I2C
-    ESP_LOGI(TAG, "Initializing I2C...");
-    //ESP_ERROR_CHECK(i2c_master_init());
-    // 1. Sobe I2C estável
-    i2c_init_fixed();
+    // Initialize I2C using new modular driver
+    ESP_LOGI(TAG, "Initializing I2C with new modular driver...");
+    i2c_master_config_t i2c_config = {
+        .i2c_port = I2C_MASTER_NUM,
+        .sda_io_num = I2C_MASTER_SDA_IO,
+        .scl_io_num = I2C_MASTER_SCL_IO,
+        .clk_speed = I2C_MASTER_FREQ_HZ,
+        .sda_pullup_en = true,
+        .scl_pullup_en = true,
+        .timeout_ms = 1000
+    };
+    ESP_ERROR_CHECK(i2c_master_init(&i2c_config));
     
-    i2c_master_init_ssd1306(&dev, I2C_MASTER_NUM, 128, 64, 0x3C);
-
-    // Initialize OLED
-    ESP_LOGI(TAG, "Initializing OLED...");
-    i2c_master_init_ssd1306(&dev, I2C_MASTER_NUM, 128, 64, 0x3C);
+    // Validate voltage range for display
+    uint32_t operating_voltage_mv = 3300;  // 3.3V typical for ESP32
+    if (!i2c_master_validate_voltage(operating_voltage_mv)) {
+        ESP_LOGW(TAG, "Operating voltage outside recommended range");
+    }
+    
+    // Detect and initialize OLED display with SSD1306/SSD1315 support
+    ESP_LOGI(TAG, "Initializing OLED display...");
+    display_driver_ic_t detected_driver = DISPLAY_DRIVER_SSD1306;
+    esp_err_t probe_result = i2c_master_detect_driver(I2C_MASTER_NUM, 0x3C, &detected_driver);
+    
+    if (probe_result == ESP_OK) {
+        ESP_LOGI(TAG, "Display detected: %s", i2c_master_get_driver_name(detected_driver));
+        // Initialize display with detected driver IC
+        i2c_master_init_ssd1306_ex(&dev, I2C_MASTER_NUM, 128, 64, 0x3C, detected_driver);
+    } else {
+        ESP_LOGW(TAG, "Could not detect display, using default SSD1306 initialization");
+        i2c_master_init_ssd1306(&dev, I2C_MASTER_NUM, 128, 64, 0x3C);
+    }
     /*for (uint8_t a = 1; a < 0x7F; a++) {
         i2c_cmd_handle_t c = i2c_cmd_link_create();
         i2c_master_start(c);
