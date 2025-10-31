@@ -81,7 +81,7 @@ This directory contains the CI/CD workflows for the ESP32 Solo Miner project.
 
 **Reusable:** Can be called by other workflows with configurable artifact retention.
 
-### 6. Documentation Check (`documentation.yml`)
+### 7. Documentation Check (`documentation.yml`)
 **Triggers:** Pull requests to main
 **Purpose:** Ensures documentation stays current
 
@@ -90,6 +90,22 @@ This directory contains the CI/CD workflows for the ESP32 Solo Miner project.
 - Validates README.md completeness (Configuration, Build, Usage, License sections)
 - Analyzes comment density in source files
 - Provides warnings if docs are missing
+
+### 8. Sync Copilot Instructions (`sync-copilot-instructions.yml`)
+**Triggers:** Push to main (when instruction files change), Pull requests (when instruction files change), Manual dispatch
+**Purpose:** Keeps Copilot instructions synchronized across different contexts
+
+**What it does:**
+- Monitors changes to `.github/copilot-instructions.md` (for IDE) and `.github/agents/CONTEXT.md` (for Workspace)
+- Automatically syncs content from the most recently modified file to the other
+- Creates a PR with the synced changes for review
+- Comments on PRs to warn about sync needed after merge
+- Ensures both IDE and Workspace agents have consistent project context
+
+**Why it's needed:**
+- GitHub Copilot IDE extension reads from `.github/copilot-instructions.md`
+- GitHub Copilot Workspace agents read from `.github/agents/CONTEXT.md`
+- This workflow ensures both files stay in sync for consistent AI assistance
 
 ## Best Practices
 
