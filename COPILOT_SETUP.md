@@ -76,12 +76,12 @@ Copilot should now reference the cooling requirements from the instructions.
 
 A GitHub Action (`.github/workflows/sync-copilot-instructions.yml`) automatically keeps both files synchronized:
 
-- **When you update either file**, the changes are automatically synced to the other
-- **On main branch**: Changes are committed automatically with `[skip ci]`
-- **In pull requests**: You'll receive a comment warning about the sync after merge
+- **When you update either file**, the workflow detects the changes
+- **On main branch**: A PR is automatically created with the synced changes for review
+- **In pull requests**: You'll receive a comment warning about sync needed after merge
 - **Sync direction**: Most recently modified file → other file
 
-This ensures both IDE and Workspace contexts stay consistent without manual effort.
+This ensures both IDE and Workspace contexts stay consistent while maintaining proper review process.
 
 ## Testing Your Setup
 

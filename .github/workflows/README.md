@@ -98,8 +98,8 @@ This directory contains the CI/CD workflows for the ESP32 Solo Miner project.
 **What it does:**
 - Monitors changes to `.github/copilot-instructions.md` (for IDE) and `.github/agents/CONTEXT.md` (for Workspace)
 - Automatically syncs content from the most recently modified file to the other
-- Commits changes to main branch automatically (with `[skip ci]` to avoid loops)
-- Comments on PRs to warn about automatic syncing after merge
+- Creates a PR with the synced changes for review
+- Comments on PRs to warn about sync needed after merge
 - Ensures both IDE and Workspace agents have consistent project context
 
 **Why it's needed:**

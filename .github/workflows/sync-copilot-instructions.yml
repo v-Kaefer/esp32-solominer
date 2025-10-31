@@ -74,18 +74,39 @@ jobs:
             echo "needs_sync=false" >> $GITHUB_OUTPUT
           fi
       
-      - name: Commit changes
+      - name: Create PR for sync
         if: steps.sync.outputs.needs_sync == 'true' && github.event_name == 'push'
-        run: |
-          git add .github/copilot-instructions.md .github/agents/CONTEXT.md
-          
-          if [ "${{ steps.sync.outputs.direction }}" == "copilot-to-agent" ]; then
-            git commit -m "chore: sync copilot-instructions.md to agents/CONTEXT.md [skip ci]"
-          else
-            git commit -m "chore: sync agents/CONTEXT.md to copilot-instructions.md [skip ci]"
-          fi
-          
-          git push
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: |
+            chore: sync Copilot instructions
+            
+            Automatically sync ${{ steps.sync.outputs.direction == 'copilot-to-agent' && 'copilot-instructions.md to agents/CONTEXT.md' || 'agents/CONTEXT.md to copilot-instructions.md' }}
+          branch: sync/copilot-instructions-${{ github.run_number }}
+          delete-branch: true
+          title: 'chore: Sync Copilot instructions (${{ steps.sync.outputs.direction }})'
+          body: |
+            ## Automatic Sync of Copilot Instructions
+            
+            This PR was automatically created by the sync workflow because the instruction files were out of sync.
+            
+            **Sync direction:** ${{ steps.sync.outputs.direction == 'copilot-to-agent' && '`.github/copilot-instructions.md` → `.github/agents/CONTEXT.md`' || '`.github/agents/CONTEXT.md` → `.github/copilot-instructions.md`' }}
+            
+            **Triggered by:** Commit ${{ github.sha }}
+            
+            ### What this does
+            - Ensures IDE Copilot and Workspace agents have consistent context
+            - Syncs content from the most recently modified file
+            
+            ### Review checklist
+            - [ ] Verify the synced content is correct
+            - [ ] Merge to apply the sync
+            
+            This PR is safe to merge if the changes look correct.
+          labels: |
+            documentation
+            automated
       
       - name: Comment on PR
         if: steps.sync.outputs.needs_sync == 'true' && github.event_name == 'pull_request'
