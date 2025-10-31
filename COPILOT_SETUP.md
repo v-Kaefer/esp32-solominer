@@ -72,6 +72,17 @@ Copilot should now reference the cooling requirements from the instructions.
 - `.github/agents/CONTEXT.md` - For Copilot Workspace and issue/PR agents
 - `.github/copilot-instructions.md` - For Copilot in your IDE while coding
 
+## Automatic Synchronization
+
+A GitHub Action (`.github/workflows/sync-copilot-instructions.yml`) automatically keeps both files synchronized:
+
+- **When you update either file**, the changes are automatically synced to the other
+- **On main branch**: Changes are committed automatically with `[skip ci]`
+- **In pull requests**: You'll receive a comment warning about the sync after merge
+- **Sync direction**: Most recently modified file → other file
+
+This ensures both IDE and Workspace contexts stay consistent without manual effort.
+
 ## Testing Your Setup
 
 Try asking Copilot to generate code for:
