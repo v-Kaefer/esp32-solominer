@@ -63,7 +63,6 @@ jobs:
           
           # Determine version suffix and variant logic based on branch
           BRANCH_NAME="${{ github.ref_name }}"
-          VERSION_SUFFIX=""
           TAG_PREFIX="v$VERSION"
           
           if [[ "$BRANCH_NAME" == "release" ]]; then
@@ -76,12 +75,13 @@ jobs:
             
             # Find the highest rc variant for this version
             HIGHEST_RC=0
-            for tag in $(git tag -l "${TAG_PREFIX}-rc.*" 2>/dev/null); do
-              RC_NUM=$(echo "$tag" | grep -oP '\-rc\.\K[0-9]+$')
-              if [[ -n "$RC_NUM" ]] && [[ "$RC_NUM" -gt "$HIGHEST_RC" ]]; then
-                HIGHEST_RC=$RC_NUM
+            while IFS= read -r tag; do
+              # Extract number after -rc. using parameter expansion
+              RC_PART="${tag##*-rc.}"
+              if [[ "$RC_PART" =~ ^[0-9]+$ ]] && [[ "$RC_PART" -gt "$HIGHEST_RC" ]]; then
+                HIGHEST_RC=$RC_PART
               fi
-            done
+            done < <(git tag -l "${TAG_PREFIX}-rc.*" 2>/dev/null)
             
             NEXT_RC=$((HIGHEST_RC + 1))
             TAG_NAME="${TAG_PREFIX}-rc.${NEXT_RC}"
@@ -91,12 +91,13 @@ jobs:
             
             # Find the highest alpha variant for this version
             HIGHEST_ALPHA=0
-            for tag in $(git tag -l "${TAG_PREFIX}-alpha.*" 2>/dev/null); do
-              ALPHA_NUM=$(echo "$tag" | grep -oP '\-alpha\.\K[0-9]+$')
-              if [[ -n "$ALPHA_NUM" ]] && [[ "$ALPHA_NUM" -gt "$HIGHEST_ALPHA" ]]; then
-                HIGHEST_ALPHA=$ALPHA_NUM
+            while IFS= read -r tag; do
+              # Extract number after -alpha. using parameter expansion
+              ALPHA_PART="${tag##*-alpha.}"
+              if [[ "$ALPHA_PART" =~ ^[0-9]+$ ]] && [[ "$ALPHA_PART" -gt "$HIGHEST_ALPHA" ]]; then
+                HIGHEST_ALPHA=$ALPHA_PART
               fi
-            done
+            done < <(git tag -l "${TAG_PREFIX}-alpha.*" 2>/dev/null)
             
             NEXT_ALPHA=$((HIGHEST_ALPHA + 1))
             TAG_NAME="${TAG_PREFIX}-alpha.${NEXT_ALPHA}"
