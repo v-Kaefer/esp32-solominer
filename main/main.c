@@ -173,11 +173,11 @@ void update_display(float hashrate)
     ssd1306_clear_screen(&dev, false);
     ssd1306_contrast(&dev, 0xff);
     
-    // Title
+    // Title - Page 0-1 (Yellow zone on color displays)
     ssd1306_display_text(&dev, 0, "ESP32-S3 BTC Miner", 18, false);
     ssd1306_display_text(&dev, 1, "------------------", 18, false);
     
-    // Hashrate
+    // Hashrate - Page 2 (Blue zone on color displays)
     snprintf(line, sizeof(line), "Rate: %.1f H/s", hashrate);
     ssd1306_display_text(&dev, 2, line, strlen(line), false);
     
@@ -192,6 +192,10 @@ void update_display(float hashrate)
     // Current nonce
     snprintf(line, sizeof(line), "Nonce: %lu", nonce);
     ssd1306_display_text(&dev, 5, line, strlen(line), false);
+    
+    // Color zone indicators - Page 6-7 (Bottom blue zone)
+    ssd1306_display_text(&dev, 6, "YELLOW ZONE TOP", 15, false);
+    ssd1306_display_text(&dev, 7, "BLUE ZONE BOTTOM", 16, false);
 }
 
 // Mining task
@@ -279,7 +283,7 @@ void app_main(void)
     ESP_ERROR_CHECK(i2c_master_init(&i2c_config));
     
     // Validate voltage range for display
-    // Using typical ESP32 operating voltage (3.3V)
+    // Using typical ESP32 operating voltage (3.3V) - compatible with 3V OLED displays
     if (!i2c_master_validate_voltage(DISPLAY_VOLTAGE_TYPICAL_MV)) {
         ESP_LOGW(TAG, "Operating voltage outside recommended range");
     }
