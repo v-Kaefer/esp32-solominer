@@ -59,3 +59,28 @@ benchmark_print_all();
 ```
 
 See `examples/benchmark_integration_example.c` for more examples.
+
+## Testing
+
+This project includes comprehensive unit tests for all components.
+
+### Running Tests
+
+To build and run the unit tests:
+
+```bash
+cd test
+idf.py build
+idf.py flash monitor
+```
+
+For more details, see [test/README.md](test/README.md)
+
+### Test Coverage
+
+- **Benchmark Component**: 12 test cases covering initialization, timing, statistics, and edge cases
+- Tests are automatically built in the CI/CD pipeline
+
+### Continuous Integration
+
+Tests are automatically executed in the GitHub Actions workflow on every push and pull request.

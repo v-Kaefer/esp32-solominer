@@ -1,6 +1,9 @@
 build/
+test/build/
 sdkconfig
 sdkconfig.old
+test/sdkconfig
+test/sdkconfig.old
 .env
 .embold
 .qodo
