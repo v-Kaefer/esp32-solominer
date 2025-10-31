@@ -16,6 +16,7 @@
 #include "driver/gpio.h"
 #include "ssd1306.h"
 #include "config.h"
+#include "mqtt_handler.h"
 
 // I2C Configuration for OLED
 #define I2C_MASTER_SCL_IO    9    // GPIO09 na placa
@@ -91,6 +92,17 @@ void wifi_init(void)
     ESP_ERROR_CHECK(esp_wifi_start());
 
     ESP_LOGI(TAG, "WiFi init finished.");
+    
+    // Initialize MQTT (runs on Core 0 to not disrupt SHA256 mining on Core 1)
+#if defined(ENABLE_MQTT) && ENABLE_MQTT
+    ESP_LOGI(TAG, "Initializing MQTT on core %d...", xPortGetCoreID());
+    esp_err_t mqtt_err = mqtt_handler_init();
+    if (mqtt_err != ESP_OK) {
+        ESP_LOGW(TAG, "Failed to initialize MQTT: %s", esp_err_to_name(mqtt_err));
+    } else {
+        ESP_LOGI(TAG, "MQTT initialized successfully");
+    }
+#endif
 }
 
 #endif // WIFI_SSID
@@ -264,6 +276,11 @@ void mining_task(void *pvParameters)
             float hashrate = hash_count / (elapsed_sec > 0 ? elapsed_sec : 1);
             
             update_display(hashrate);
+            
+#if defined(WIFI_SSID) && defined(ENABLE_MQTT) && ENABLE_MQTT
+            // Publish mining stats to MQTT (runs on different core, won't block mining)
+            mqtt_publish_mining_stats(hashrate, total_hashes, best_difficulty);
+#endif
             
             last_update = current_time;
             hash_count = 0;

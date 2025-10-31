@@ -12,4 +12,23 @@
 #define WIFI_PASS "your_wifi_password"
 #endif
 
+// MQTT Configuration (optional)
+// Uncomment and customize these to use your own MQTT broker
+// Default: Uses public EMQX broker at broker.emqx.io
+// Note: Consider using MQTTX AIO Toolbox for testing and monitoring
+//       https://github.com/emqx/MQTTX
+#ifndef MQTT_BROKER_URL
+// #define MQTT_BROKER_URL "mqtt://your-broker.com:1883"
+// For secure connection: #define MQTT_BROKER_URL "mqtts://your-broker.com:8883"
+#endif
+
+#ifndef MQTT_CLIENT_ID
+// #define MQTT_CLIENT_ID "esp32_btc_miner_custom"
+#endif
+
+// Set to 0 to disable MQTT completely
+#ifndef ENABLE_MQTT
+#define ENABLE_MQTT 1
+#endif
+
 #endif // CONFIG_H
