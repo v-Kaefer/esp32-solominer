@@ -2,6 +2,24 @@
 
 This repository uses GitHub Actions for continuous integration and continuous deployment (CI/CD). All workflows are configured to ensure code quality, security, and maintainability.
 
+## 🛡️ Branch Protection
+
+This repository enforces strict branch protection rules:
+
+- **`release` branch**: Can only receive pull requests from `main` branch
+- **`main` branch**: Can only receive pull requests from `develop` branch, OR from branches labeled with `🚑 hotfix`
+
+These rules are automatically enforced by the Branch Protection workflow. If you attempt to create a PR that violates these rules, the workflow will fail and provide guidance on how to fix it.
+
+### Hotfix Exception
+
+For critical bugs in production, you can bypass the develop → main requirement:
+1. Create a branch from `main` (e.g., `hotfix/critical-bug`)
+2. Make your fix
+3. Create a PR to `main`
+4. The PR will be automatically labeled with `🚑 hotfix` (if your branch name starts with `hotfix/`)
+5. The branch protection check will pass with the hotfix exception
+
 ## 🚀 Quick Start
 
 When you create a pull request, the following checks will run automatically:
@@ -44,6 +62,14 @@ The system uses modular, reusable workflows that can be called by different work
 - `reusable-test-coverage.yml` - Test coverage analysis
 
 ### Individual Workflow Details
+
+### Branch Protection
+Enforces branch protection rules to maintain code quality and stability.
+- Runs on: PRs to main/release (on opened, synchronize, labeled, unlabeled)
+- Duration: <1 minute
+- Checks: Source branch validation, hotfix label exception
+- **Enforcement:** `release` ← `main` only; `main` ← `develop` or hotfix-labeled branches
+- **Actions:** Posts comments on PR with pass/fail status
 
 ### Build Workflow
 Compiles the project using ESP-IDF v5.1.2 for ESP32-S3 target.
