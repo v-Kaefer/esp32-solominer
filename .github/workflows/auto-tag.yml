@@ -13,6 +13,7 @@ on:
     branches:
       - main
       - develop
+      - release
     types: [opened, synchronize, reopened]
     paths:
       - 'main/**'
@@ -38,10 +39,14 @@ jobs:
           git config user.email "actions@github.com"
 
       - name: Auto-create semantic version tag
-        if: github.event_name == 'push'
         run: |
           # Determine version based on branch
-          BRANCH_NAME="${{ github.ref_name }}"
+          # For PRs, use the target branch; for pushes, use the current branch
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            BRANCH_NAME="${{ github.base_ref }}"
+          else
+            BRANCH_NAME="${{ github.ref_name }}"
+          fi
           
           if [[ "$BRANCH_NAME" == "release" ]]; then
             # Priority 1: Release branch - major version (1.0.0, 2.0.0, 3.0.0, ...)
@@ -102,6 +107,20 @@ jobs:
             NEXT_PATCH=$((HIGHEST_PATCH + 1))
             TAG_NAME="v0.0.${NEXT_PATCH}"
             echo "Creating patch version tag: $TAG_NAME"
+            
+            # Cleanup old patch versions at every tenth version (10, 20, 30, etc.)
+            if [[ $((NEXT_PATCH % 10)) -eq 0 ]]; then
+              echo "Reached milestone version $TAG_NAME, cleaning up old patch versions"
+              # Delete versions from (NEXT_PATCH - 9) to (NEXT_PATCH - 1)
+              for ((i = NEXT_PATCH - 9; i < NEXT_PATCH; i++)); do
+                OLD_TAG="v0.0.${i}"
+                if git rev-parse "$OLD_TAG" >/dev/null 2>&1; then
+                  echo "  Deleting old tag: $OLD_TAG"
+                  git tag -d "$OLD_TAG" 2>/dev/null || true
+                  git push origin ":refs/tags/$OLD_TAG" 2>/dev/null || true
+                fi
+              done
+            fi
             
           else
             echo "Branch $BRANCH_NAME does not match tagging criteria, skipping"
