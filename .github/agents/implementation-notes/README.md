@@ -7,7 +7,8 @@ This directory contains detailed implementation notes and technical summaries fr
 - **`IMPLEMENTATION_COMPLETE.md`** - Complete implementation summary for I2C driver update (issue #9)
 - **`IMPLEMENTATION_SUMMARY.md`** - Feature implementation detector and test generation system
 - **`I2C_DRIVER_UPDATE.md`** - Technical details of I2C driver modular update
-- **`CHANGELOG2.md`** - Portuguese technical notes about I2C diagnostic and fix
+- **`CHANGELOG_I2C_DIAGNOSTIC.md`** - Detailed Portuguese technical notes about I2C diagnostic process and pin discovery
+- **`CHANGELOG2.md`** - Portuguese technical summary of I2C diagnostic and fix
 
 ## Purpose
 
