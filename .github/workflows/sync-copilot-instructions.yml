@@ -1,0 +1,126 @@
+name: Sync Copilot Instructions
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/copilot-instructions.md'
+      - '.github/agents/CONTEXT.md'
+  pull_request:
+    paths:
+      - '.github/copilot-instructions.md'
+      - '.github/agents/CONTEXT.md'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync-instructions:
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Set up Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      
+      - name: Check for changes and sync
+        id: sync
+        run: |
+          # Check which file was modified most recently
+          COPILOT_TIME=$(git log -1 --format="%at" -- .github/copilot-instructions.md 2>/dev/null || echo "0")
+          CONTEXT_TIME=$(git log -1 --format="%at" -- .github/agents/CONTEXT.md 2>/dev/null || echo "0")
+          
+          echo "Copilot instructions last modified: $COPILOT_TIME"
+          echo "Agent context last modified: $CONTEXT_TIME"
+          
+          # Determine sync direction based on most recent change
+          if [ "$COPILOT_TIME" -gt "$CONTEXT_TIME" ]; then
+            echo "Syncing from copilot-instructions.md to agents/CONTEXT.md"
+            SOURCE=".github/copilot-instructions.md"
+            TARGET=".github/agents/CONTEXT.md"
+            echo "direction=copilot-to-agent" >> $GITHUB_OUTPUT
+          else
+            echo "Syncing from agents/CONTEXT.md to copilot-instructions.md"
+            SOURCE=".github/agents/CONTEXT.md"
+            TARGET=".github/copilot-instructions.md"
+            echo "direction=agent-to-copilot" >> $GITHUB_OUTPUT
+          fi
+          
+          # Check if sync is needed
+          if ! diff -q "$SOURCE" "$TARGET" > /dev/null 2>&1; then
+            echo "Files differ, sync needed"
+            echo "needs_sync=true" >> $GITHUB_OUTPUT
+            
+            # Create backup of target
+            cp "$TARGET" "$TARGET.backup"
+            
+            # Copy source to target
+            cp "$SOURCE" "$TARGET"
+            
+            echo "Sync completed"
+          else
+            echo "Files are identical, no sync needed"
+            echo "needs_sync=false" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Create PR for sync
+        if: steps.sync.outputs.needs_sync == 'true' && github.event_name == 'push'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: |
+            chore: sync Copilot instructions
+            
+            Automatically sync ${{ steps.sync.outputs.direction == 'copilot-to-agent' && 'copilot-instructions.md to agents/CONTEXT.md' || 'agents/CONTEXT.md to copilot-instructions.md' }}
+          branch: sync/copilot-instructions-${{ github.run_number }}
+          delete-branch: true
+          title: 'chore: Sync Copilot instructions (${{ steps.sync.outputs.direction }})'
+          body: |
+            ## Automatic Sync of Copilot Instructions
+            
+            This PR was automatically created by the sync workflow because the instruction files were out of sync.
+            
+            **Sync direction:** ${{ steps.sync.outputs.direction == 'copilot-to-agent' && '`.github/copilot-instructions.md` → `.github/agents/CONTEXT.md`' || '`.github/agents/CONTEXT.md` → `.github/copilot-instructions.md`' }}
+            
+            **Triggered by:** Commit ${{ github.sha }}
+            
+            ### What this does
+            - Ensures IDE Copilot and Workspace agents have consistent context
+            - Syncs content from the most recently modified file
+            
+            ### Review checklist
+            - [ ] Verify the synced content is correct
+            - [ ] Merge to apply the sync
+            
+            This PR is safe to merge if the changes look correct.
+          labels: |
+            documentation
+            automated
+      
+      - name: Comment on PR
+        if: steps.sync.outputs.needs_sync == 'true' && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const direction = '${{ steps.sync.outputs.direction }}';
+            const message = direction === 'copilot-to-agent' 
+              ? '⚠️ This PR modifies `.github/copilot-instructions.md`. The changes will be automatically synced to `.github/agents/CONTEXT.md` when merged.'
+              : '⚠️ This PR modifies `.github/agents/CONTEXT.md`. The changes will be automatically synced to `.github/copilot-instructions.md` when merged.';
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: message
+            });

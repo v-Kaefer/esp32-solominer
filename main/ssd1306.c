@@ -3,6 +3,7 @@
 #include "freertos/task.h"
 #include "esp_log.h"
 #include "ssd1306.h"
+#include "driver/i2c_master.h"
 
 static const char *TAG = "SSD1306";
 
@@ -16,6 +17,14 @@ static const char *TAG = "SSD1306";
 #define OLED_CMD_SET_MEMORY_ADDR_MODE 0x20
 #define OLED_CMD_SET_COLUMN_RANGE    0x21
 #define OLED_CMD_SET_PAGE_RANGE      0x22
+
+// Display contrast settings
+#define SSD1306_CONTRAST_HIGH        0xCF  // High contrast for SSD1306
+#define SSD1315_CONTRAST_MAX         0xFF  // Maximum contrast for SSD1315
+
+// Pre-charge period settings
+#define SSD1306_PRECHARGE_DEFAULT    0xF1  // Default pre-charge for SSD1306
+#define SSD1315_PRECHARGE_OPTIMIZED  0x22  // Optimized pre-charge for SSD1315
 
 // 5x8 font (simple ASCII)
 static const uint8_t font5x8[][5] = {
@@ -105,38 +114,95 @@ static esp_err_t ssd1306_write_data(SSD1306_t *dev, uint8_t *data, size_t len) {
 }
 
 void i2c_master_init_ssd1306(SSD1306_t *dev, i2c_port_t i2c_port, int width, int height, uint8_t addr) {
+    // Default to SSD1306 for backward compatibility
+    i2c_master_init_ssd1306_ex(dev, i2c_port, width, height, addr, DISPLAY_DRIVER_SSD1306);
+}
+
+void i2c_master_init_ssd1306_ex(SSD1306_t *dev, i2c_port_t i2c_port, int width, int height, uint8_t addr, display_driver_ic_t driver_ic) {
     dev->i2c_port = i2c_port;
     dev->i2c_addr = addr;
     dev->width = width;
     dev->height = height;
     dev->pages = height / 8;
+    dev->driver_ic = driver_ic;
 
-    // Initialization sequence
+    ESP_LOGI(TAG, "Initializing display: %s", i2c_master_get_driver_name(driver_ic));
+    ESP_LOGI(TAG, "Resolution: %dx%d, Address: 0x%02X", width, height, addr);
+
+    // Initialization sequence (compatible with both SSD1306 and SSD1315)
     ssd1306_write_command(dev, OLED_CMD_DISPLAY_OFF);
-    ssd1306_write_command(dev, 0xD5); // Set display clock divide
+    
+    // Display clock divide ratio/oscillator frequency
+    ssd1306_write_command(dev, 0xD5);
     ssd1306_write_command(dev, 0x80);
-    ssd1306_write_command(dev, 0xA8); // Set multiplex
+    
+    // Multiplex ratio
+    ssd1306_write_command(dev, 0xA8);
     ssd1306_write_command(dev, height - 1);
-    ssd1306_write_command(dev, 0xD3); // Set display offset
+    
+    // Display offset
+    ssd1306_write_command(dev, 0xD3);
     ssd1306_write_command(dev, 0x00);
-    ssd1306_write_command(dev, 0x40); // Set start line
-    ssd1306_write_command(dev, 0x8D); // Charge pump
-    ssd1306_write_command(dev, 0x14);
-    ssd1306_write_command(dev, OLED_CMD_SET_MEMORY_ADDR_MODE);
-    ssd1306_write_command(dev, 0x00); // Horizontal addressing mode
-    ssd1306_write_command(dev, 0xA1); // Segment remap
-    ssd1306_write_command(dev, 0xC8); // COM scan direction
-    ssd1306_write_command(dev, 0xDA); // Set COM pins
-    ssd1306_write_command(dev, 0x12);
-    ssd1306_write_command(dev, OLED_CMD_SET_CONTRAST);
-    ssd1306_write_command(dev, 0xCF);
-    ssd1306_write_command(dev, 0xD9); // Set precharge
-    ssd1306_write_command(dev, 0xF1);
-    ssd1306_write_command(dev, 0xDB); // Set VCOM detect
+    
+    // Start line address
     ssd1306_write_command(dev, 0x40);
+    
+    // Charge pump setting - critical for proper operation
+    // Both SSD1306 and SSD1315 use 0x14 to enable charge pump
+    // (SSD1315 has improved internal implementation but uses same command)
+    ssd1306_write_command(dev, 0x8D);
+    ssd1306_write_command(dev, 0x14);  // Enable charge pump
+    
+    // Memory addressing mode
+    ssd1306_write_command(dev, OLED_CMD_SET_MEMORY_ADDR_MODE);
+    ssd1306_write_command(dev, 0x00);  // Horizontal addressing mode
+    
+    // Segment re-map (column 127 mapped to SEG0)
+    ssd1306_write_command(dev, 0xA1);
+    
+    // COM output scan direction (remapped mode)
+    ssd1306_write_command(dev, 0xC8);
+    
+    // COM pins hardware configuration
+    ssd1306_write_command(dev, 0xDA);
+    if (height == 64) {
+        ssd1306_write_command(dev, 0x12);  // Alternative COM pin config for 128x64
+    } else if (height == 32) {
+        ssd1306_write_command(dev, 0x02);  // Sequential COM pin config for 128x32
+    } else {
+        ssd1306_write_command(dev, 0x12);  // Default
+    }
+    
+    // Contrast control - high brightness setting
+    ssd1306_write_command(dev, OLED_CMD_SET_CONTRAST);
+    if (driver_ic == DISPLAY_DRIVER_SSD1315) {
+        ssd1306_write_command(dev, SSD1315_CONTRAST_MAX);
+    } else {
+        ssd1306_write_command(dev, SSD1306_CONTRAST_HIGH);
+    }
+    
+    // Pre-charge period - optimized for ultra-low power
+    ssd1306_write_command(dev, 0xD9);
+    if (driver_ic == DISPLAY_DRIVER_SSD1315) {
+        ssd1306_write_command(dev, SSD1315_PRECHARGE_OPTIMIZED);
+    } else {
+        ssd1306_write_command(dev, SSD1306_PRECHARGE_DEFAULT);
+    }
+    
+    // VCOMH deselect level
+    ssd1306_write_command(dev, 0xDB);
+    ssd1306_write_command(dev, 0x40);  // ~0.77 x VCC
+    
+    // Display follows RAM content
     ssd1306_write_command(dev, OLED_CMD_DISPLAY_RAM);
+    
+    // Normal display mode (not inverted)
     ssd1306_write_command(dev, OLED_CMD_DISPLAY_NORMAL);
+    
+    // Turn on display
     ssd1306_write_command(dev, OLED_CMD_DISPLAY_ON);
+    
+    ESP_LOGI(TAG, "Display initialization complete");
 }
 
 void ssd1306_clear_screen(SSD1306_t *dev, bool invert) {
