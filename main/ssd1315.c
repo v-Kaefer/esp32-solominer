@@ -111,6 +111,8 @@ void i2c_master_init_ssd1315(SSD1315_t *dev, i2c_port_t i2c_port, int width, int
     dev->height = height;
     dev->pages = height / 8;
 
+    ESP_LOGI(TAG, "Initializing SSD1315 at I2C addr 0x%02X", addr);
+
     // SSD1315 initialization sequence (very similar to SSD1306)
     // The main difference is that SSD1315 may have slightly different default settings
     ssd1315_write_command(dev, OLED_CMD_DISPLAY_OFF);
@@ -138,6 +140,11 @@ void i2c_master_init_ssd1315(SSD1315_t *dev, i2c_port_t i2c_port, int width, int
     ssd1315_write_command(dev, OLED_CMD_DISPLAY_RAM);
     ssd1315_write_command(dev, OLED_CMD_DISPLAY_NORMAL);
     ssd1315_write_command(dev, OLED_CMD_DISPLAY_ON);
+    
+    // Small delay to let display stabilize after initialization
+    vTaskDelay(pdMS_TO_TICKS(100));
+    
+    ESP_LOGI(TAG, "SSD1315 initialization complete");
 }
 
 void ssd1315_clear_screen(SSD1315_t *dev, bool invert) {

@@ -228,157 +228,9 @@ void mining_task(void *pvParameters)
     }
 }
 
-
-#define I2C_SWEEP_TAG     "I2C_SWEEP"
-#define I2C_SWEEP_PORT    I2C_NUM_0
-#define I2C_SWEEP_FREQ_HZ 100000  // 100 kHz p/ evitar ruído no teste
-
-// Candidatos seguros no S3 (evita 0: strap, 19/20: USB D-/D+, 46: input-only)
-static const int s3_i2c_candidates[] = {
-    1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,21
-};
-
-static esp_err_t i2c_init_on_pins(int sda, int scl) {
-    // puxa as linhas para alto (pull-up interno é fraco, mas ajuda na leitura de idle)
-    gpio_set_pull_mode(sda, GPIO_PULLUP_ONLY);
-    gpio_set_pull_mode(scl, GPIO_PULLUP_ONLY);
-
-    i2c_config_t conf = {0};
-    conf.mode = I2C_MODE_MASTER;
-    conf.sda_io_num = sda;
-    conf.scl_io_num = scl;
-    conf.sda_pullup_en = GPIO_PULLUP_ENABLE;
-    conf.scl_pullup_en = GPIO_PULLUP_ENABLE;
-    conf.master.clk_speed = I2C_SWEEP_FREQ_HZ;
-
-    esp_err_t err = i2c_param_config(I2C_SWEEP_PORT, &conf);
-    if (err != ESP_OK) return err;
-    return i2c_driver_install(I2C_SWEEP_PORT, conf.mode, 0, 0, 0);
-}
-
-static void i2c_deinit(void) {
-    i2c_driver_delete(I2C_SWEEP_PORT);
-}
-
-static int i2c_scan_addrs_log(void) {
-    int found = 0;
-    for (uint8_t a = 1; a < 0x7F; a++) {
-        i2c_cmd_handle_t c = i2c_cmd_link_create();
-        i2c_master_start(c);
-        i2c_master_write_byte(c, (a << 1) | I2C_MASTER_WRITE, true); // exige ACK
-        i2c_master_stop(c);
-        esp_err_t r = i2c_master_cmd_begin(I2C_SWEEP_PORT, c, pdMS_TO_TICKS(50));
-        i2c_cmd_link_delete(c);
-        if (r == ESP_OK) {
-            ESP_LOGW(I2C_SWEEP_TAG, "addr 0x%02X", a);
-            found++;
-        }
-    }
-    return found;
-}
-
-static void i2c_pin_sweep(void) {
-    ESP_LOGI(I2C_SWEEP_TAG, "=== starting sweep @100kHz ===");
-    size_t n = sizeof(s3_i2c_candidates)/sizeof(s3_i2c_candidates[0]);
-
-    for (size_t i = 0; i < n; i++) {
-        for (size_t j = 0; j < n; j++) {
-            int sda = s3_i2c_candidates[i];
-            int scl = s3_i2c_candidates[j];
-            if (sda == scl) continue;
-            if (sda == 0 || scl == 0) continue;
-            if (sda == 19 || sda == 20 || scl == 19 || scl == 20) continue; // USB
-            if (sda == 46 || scl == 46) continue; // input-only
-
-            esp_err_t err = i2c_init_on_pins(sda, scl);
-            if (err == ESP_OK) {
-                int idle_sda = gpio_get_level(sda);
-                int idle_scl = gpio_get_level(scl);
-                ESP_LOGI(I2C_SWEEP_TAG, "try SDA=%d SCL=%d (idle %d/%d)",
-                         sda, scl, idle_sda, idle_scl);
-
-                int cnt = i2c_scan_addrs_log();
-                if (cnt > 0) {
-                    ESP_LOGW(I2C_SWEEP_TAG, "FOUND: SDA=%d SCL=%d | %d device(s)",
-                             sda, scl, cnt);
-                }
-                i2c_deinit();
-                vTaskDelay(pdMS_TO_TICKS(10));
-            } else {
-                ESP_LOGW(I2C_SWEEP_TAG, "skip SDA=%d SCL=%d (init err=%d)", sda, scl, err);
-            }
-        }
-    }
-    ESP_LOGI(I2C_SWEEP_TAG, "=== sweep done ===");
-}
-
-static void probe_pin_is_really_here(int gpio) {
-  gpio_set_pull_mode(gpio, GPIO_PULLUP_ONLY);
-  gpio_set_direction(gpio, GPIO_MODE_INPUT);
-  for (int i=0;i<100;i++) {
-    int lvl = gpio_get_level(gpio);
-    ESP_LOGI("PROBE", "GPIO%d level=%d (encoste ao GND p/ ver 0)", gpio, lvl);
-    vTaskDelay(pdMS_TO_TICKS(200));
-  }
-}
-
-// Drop-in p/ substituir i2c_master_probe em qualquer IDF
-static esp_err_t i2c_probe_addr(i2c_port_t port, uint8_t addr, TickType_t timeout_ms)
-{
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    // bit R/W = 0 (WRITE). O ACK do slave confirma a presença.
-    i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_stop(cmd);
-    esp_err_t err = i2c_master_cmd_begin(port, cmd, pdMS_TO_TICKS(timeout_ms));
-    i2c_cmd_link_delete(cmd);
-    return err;
-}
-
-static esp_err_t probe_once(int sda, int scl, int addr) {
-    i2c_driver_delete(I2C_NUM_0); // ok se já estava deletado
-
-    i2c_config_t c = {
-        .mode = I2C_MODE_MASTER,
-        .sda_io_num = sda, .sda_pullup_en = GPIO_PULLUP_ENABLE,
-        .scl_io_num = scl, .scl_pullup_en = GPIO_PULLUP_ENABLE,
-        .master.clk_speed = 100000,
-    };
-    ESP_ERROR_CHECK(i2c_param_config(I2C_NUM_0, &c));
-    ESP_ERROR_CHECK(i2c_driver_install(I2C_NUM_0, c.mode, 0, 0, 0));
-    vTaskDelay(pdMS_TO_TICKS(3));
-
-    esp_err_t r = i2c_probe_addr(I2C_NUM_0, addr, 50);
-    i2c_driver_delete(I2C_NUM_0);
-    return r;
-}
-
-
-
 void app_main(void)
 {
     ESP_LOGI(TAG, "ESP32-S3 Bitcoin Miner Starting...");
-
-    // Debug code for finding I2C pins (commented out by default)
-    // Uncomment the following lines to scan for I2C devices:
-    /*
-    // tente poucos pares plausíveis e logue somente quando der ACK
-    int sda_candidates[] = {8, 15, 7};      // ajuste conforme sua placa
-    int scl_candidates[] = {1, 2, 3, 4, 9};    // ajuste conforme sua placa
-
-    for (int si = 0; si < sizeof(sda_candidates)/4; ++si) {
-        for (int ci = 0; ci < sizeof(scl_candidates)/4; ++ci) {
-            int SDA = sda_candidates[si], SCL = scl_candidates[ci];
-            if (probe_once(SDA, SCL, 0x3C) == ESP_OK ||
-                probe_once(SDA, SCL, 0x3D) == ESP_OK) {
-                ESP_LOGW("I2C", "ACK em 0x3C/0x3D com SDA=%d SCL=%d", SDA, SCL);
-            }
-        }
-    }
-    
-    ESP_LOGI(TAG, "I2C pin sweep (100kHz)...");
-    i2c_pin_sweep();  // <- roda uma vez para descobrir o par que responde
-    */
     
     // Initialize NVS
     esp_err_t ret = nvs_flash_init();
@@ -397,9 +249,17 @@ void app_main(void)
     display_dev = display_init();
     
     if (display_dev) {
+        ESP_LOGI(TAG, "Display device created successfully");
+        
+        // Clear display and show startup message
+        ESP_LOGI(TAG, "Clearing display...");
         display_clear(display_dev, false);
+        
+        ESP_LOGI(TAG, "Writing startup text...");
         display_text(display_dev, 0, "ESP32-S3 Miner", 14, false);
         display_text(display_dev, 2, "Initializing...", 15, false);
+        
+        ESP_LOGI(TAG, "Display startup complete");
     } else {
         ESP_LOGW(TAG, "Display initialization failed, continuing without display");
     }

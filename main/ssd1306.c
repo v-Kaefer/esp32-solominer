@@ -111,8 +111,14 @@ void i2c_master_init_ssd1306(SSD1306_t *dev, i2c_port_t i2c_port, int width, int
     dev->height = height;
     dev->pages = height / 8;
 
-    // Initialization sequence
-    ssd1306_write_command(dev, OLED_CMD_DISPLAY_OFF);
+    ESP_LOGI(TAG, "Initializing SSD1306 at I2C addr 0x%02X", addr);
+    
+    // Initialization sequence for SSD1306
+    esp_err_t ret;
+    
+    ret = ssd1306_write_command(dev, OLED_CMD_DISPLAY_OFF);
+    if (ret != ESP_OK) ESP_LOGW(TAG, "Failed to send DISPLAY_OFF: %s", esp_err_to_name(ret));
+    
     ssd1306_write_command(dev, 0xD5); // Set display clock divide
     ssd1306_write_command(dev, 0x80);
     ssd1306_write_command(dev, 0xA8); // Set multiplex
@@ -136,7 +142,14 @@ void i2c_master_init_ssd1306(SSD1306_t *dev, i2c_port_t i2c_port, int width, int
     ssd1306_write_command(dev, 0x40);
     ssd1306_write_command(dev, OLED_CMD_DISPLAY_RAM);
     ssd1306_write_command(dev, OLED_CMD_DISPLAY_NORMAL);
-    ssd1306_write_command(dev, OLED_CMD_DISPLAY_ON);
+    
+    ret = ssd1306_write_command(dev, OLED_CMD_DISPLAY_ON);
+    if (ret != ESP_OK) ESP_LOGW(TAG, "Failed to send DISPLAY_ON: %s", esp_err_to_name(ret));
+    
+    // Small delay to let display stabilize after initialization
+    vTaskDelay(pdMS_TO_TICKS(100));
+    
+    ESP_LOGI(TAG, "SSD1306 initialization complete");
 }
 
 void ssd1306_clear_screen(SSD1306_t *dev, bool invert) {
@@ -144,12 +157,16 @@ void ssd1306_clear_screen(SSD1306_t *dev, bool invert) {
     uint8_t buffer[128];
     memset(buffer, pattern, sizeof(buffer));
     
+    ESP_LOGI(TAG, "Clearing screen (pages=%d, width=%d, pattern=0x%02X)", dev->pages, dev->width, pattern);
+    
     for (int page = 0; page < dev->pages; page++) {
         ssd1306_write_command(dev, 0xB0 + page); // Set page
         ssd1306_write_command(dev, 0x00); // Set lower column
         ssd1306_write_command(dev, 0x10); // Set higher column
         ssd1306_write_data(dev, buffer, dev->width);
     }
+    
+    ESP_LOGI(TAG, "Screen cleared");
 }
 
 void ssd1306_contrast(SSD1306_t *dev, int contrast) {
@@ -158,7 +175,12 @@ void ssd1306_contrast(SSD1306_t *dev, int contrast) {
 }
 
 void ssd1306_display_text(SSD1306_t *dev, int page, char *text, int text_len, bool invert) {
-    if (page >= dev->pages) return;
+    if (page >= dev->pages) {
+        ESP_LOGW(TAG, "Page %d out of range (max %d)", page, dev->pages - 1);
+        return;
+    }
+    
+    ESP_LOGI(TAG, "Writing text to page %d: \"%.*s\"", page, text_len, text);
     
     uint8_t buffer[128];
     memset(buffer, invert ? 0xFF : 0x00, sizeof(buffer));
@@ -181,4 +203,6 @@ void ssd1306_display_text(SSD1306_t *dev, int page, char *text, int text_len, bo
     ssd1306_write_command(dev, 0x00);
     ssd1306_write_command(dev, 0x10);
     ssd1306_write_data(dev, buffer, dev->width);
+    
+    ESP_LOGI(TAG, "Text written successfully");
 }
