@@ -18,6 +18,20 @@ This is a learning project focused on:
 - Ensuring safety, privacy, and modularity
 - Building an ESP32 Bitcoin miner from scratch
 
+## 📚 Mining Strategy Documentation
+
+**New to ESP32 Bitcoin mining? Start here:**
+
+- **[Quick Start Guide](MINING_QUICKSTART.md)** - Get mining in 5 minutes
+- **[Comprehensive Mining Strategies](ESP32_MINING_STRATEGIES.md)** - Deep dive into mining approaches, hardware optimization, and cooling requirements
+
+These guides cover:
+- Multiple mining approaches (NerdMiner, NMMiner, LeafMiner)
+- Hardware specifications and cooling requirements
+- Performance benchmarks and expectations
+- Thermal management and active cooling recommendations
+- Optimization techniques and troubleshooting
+
 ## WiFi Configuration
 
 To configure your WiFi credentials for local development:
@@ -55,6 +69,54 @@ CI/CD builds automatically skip WiFi functionality since `config.h` is not commi
    idf.py flash monitor
    ```
 
+## Testing
+
+This project includes unit tests for core functionality using the ESP-IDF Unity test framework.
+
+### Running Tests
+
+The test suite is located in the `test/` directory. To build and run tests:
+
+```bash
+# Build the test application
+idf.py set-target esp32s3
+idf.py build
+
+# Flash and monitor (if you have hardware)
+idf.py flash monitor
+```
+
+### Test Coverage
+
+We use an automated feature detector to ensure all public functions have unit tests. To check test coverage:
+
+```bash
+python3 scripts/detect_features.py .
+```
+
+This script will:
+- Analyze all C source files in the `main/` directory
+- Identify functions that lack unit tests
+- Generate test stubs for missing tests
+
+### Adding Tests
+
+When adding new functions:
+1. Write the function in the appropriate source file
+2. Add corresponding test functions in the `test/` directory
+3. Run the feature detector to verify coverage
+4. Test names should follow the pattern: `test_<function_name>`
+
+Example test structure:
+```c
+void test_my_function(void)
+{
+    // 1. Setup test data
+    // 2. Call the function
+    // 3. Assert expected results
+    TEST_ASSERT_EQUAL(expected, actual);
+}
+```
 ## GPIO Pin Test Tool
 
 If you need to identify the correct I2C pins on your ESP32 board, use the `GPIO_Pin_Test` tool located in the `GPIO_Pin_Test/` directory. This standalone project helps you:
@@ -73,6 +135,7 @@ All pull requests must pass:
 - 🔍 Static code analysis
 - 🔒 Security scanning
 - 📝 Code quality checks
+- 🧪 Test coverage verification
 
 ## Contributing
 
