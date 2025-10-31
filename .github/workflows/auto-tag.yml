@@ -19,12 +19,6 @@ on:
       - 'main/**'
       - 'CMakeLists.txt'
       - 'VERSION'
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Version to tag (e.g., 1.0.0)'
-        required: true
-        type: string
 
 permissions:
   contents: write
@@ -44,23 +38,6 @@ jobs:
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
-
-      - name: Create version tag (manual trigger)
-        if: github.event_name == 'workflow_dispatch'
-        run: |
-          VERSION="${{ github.event.inputs.version }}"
-          TAG_NAME="v$VERSION"
-          
-          # Check if tag already exists
-          if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
-            echo "Tag $TAG_NAME already exists"
-            exit 1
-          fi
-          
-          echo "Creating tag $TAG_NAME"
-          git tag -a "$TAG_NAME" -m "ESP32 Solo Miner firmware v$VERSION"
-          git push origin "$TAG_NAME"
-          echo "Tag $TAG_NAME created and pushed successfully"
 
       - name: Auto-create tag from VERSION file
         if: github.event_name == 'push'
