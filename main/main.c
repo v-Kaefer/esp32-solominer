@@ -96,23 +96,6 @@ void wifi_init(void)
 
 #endif // WIFI_SSID
 
-// Initialize I2C for OLED using new modular driver
-esp_err_t i2c_master_init_legacy(void)
-{
-    // Use new modular I2C master driver
-    i2c_master_config_t config = {
-        .i2c_port = I2C_MASTER_NUM,
-        .sda_io_num = I2C_MASTER_SDA_IO,
-        .scl_io_num = I2C_MASTER_SCL_IO,
-        .clk_speed = I2C_MASTER_FREQ_HZ,
-        .sda_pullup_en = true,
-        .scl_pullup_en = true,
-        .timeout_ms = 1000
-    };
-    
-    return i2c_master_init(&config);
-}
-
 // Double SHA256 hash
 void double_sha256(const uint8_t* data, size_t len, uint8_t* hash)
 {
@@ -296,15 +279,7 @@ void app_main(void)
     
     // Initialize I2C using new modular driver
     ESP_LOGI(TAG, "Initializing I2C with new modular driver...");
-    i2c_master_config_t i2c_config = {
-        .i2c_port = I2C_MASTER_NUM,
-        .sda_io_num = I2C_MASTER_SDA_IO,
-        .scl_io_num = I2C_MASTER_SCL_IO,
-        .clk_speed = I2C_MASTER_FREQ_HZ,
-        .sda_pullup_en = true,
-        .scl_pullup_en = true,
-        .timeout_ms = 1000
-    };
+    i2c_master_config_t i2c_config = I2C_MASTER_DEFAULT_CONFIG();
     ESP_ERROR_CHECK(i2c_master_init(&i2c_config));
     
     // Validate voltage range for display
