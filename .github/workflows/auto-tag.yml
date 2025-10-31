@@ -50,14 +50,14 @@ jobs:
             # Find the highest major version (X.0.0)
             HIGHEST_MAJOR=0
             while IFS= read -r tag; do
-              # Match tags like v1.0.0, v2.0.0, etc.
+              # Match tags like v1.0.0, v2.0.0, etc. (exactly X.0.0 format)
               if [[ "$tag" =~ ^v([0-9]+)\.0\.0$ ]]; then
-                MAJOR="${BASH_REMATCH[1]}"
+                MAJOR=$(( 10#${BASH_REMATCH[1]} ))  # Force base-10 to handle leading zeros
                 if [[ "$MAJOR" -gt "$HIGHEST_MAJOR" ]]; then
                   HIGHEST_MAJOR=$MAJOR
                 fi
               fi
-            done < <(git tag -l "v*.0.0" 2>/dev/null)
+            done < <(git tag -l "v[0-9]*.0.0" 2>/dev/null)
             
             NEXT_MAJOR=$((HIGHEST_MAJOR + 1))
             TAG_NAME="v${NEXT_MAJOR}.0.0"
@@ -70,14 +70,14 @@ jobs:
             # Find the highest minor version (0.Y.0)
             HIGHEST_MINOR=0
             while IFS= read -r tag; do
-              # Match tags like v0.1.0, v0.2.0, etc.
+              # Match tags like v0.1.0, v0.2.0, etc. (exactly 0.Y.0 format)
               if [[ "$tag" =~ ^v0\.([0-9]+)\.0$ ]]; then
-                MINOR="${BASH_REMATCH[1]}"
+                MINOR=$(( 10#${BASH_REMATCH[1]} ))  # Force base-10 to handle leading zeros
                 if [[ "$MINOR" -gt "$HIGHEST_MINOR" ]]; then
                   HIGHEST_MINOR=$MINOR
                 fi
               fi
-            done < <(git tag -l "v0.*.0" 2>/dev/null)
+            done < <(git tag -l "v0.[0-9]*.0" 2>/dev/null)
             
             NEXT_MINOR=$((HIGHEST_MINOR + 1))
             TAG_NAME="v0.${NEXT_MINOR}.0"
@@ -90,14 +90,14 @@ jobs:
             # Find the highest patch version (0.0.Z)
             HIGHEST_PATCH=0
             while IFS= read -r tag; do
-              # Match tags like v0.0.1, v0.0.2, etc.
+              # Match tags like v0.0.1, v0.0.2, etc. (exactly 0.0.Z format)
               if [[ "$tag" =~ ^v0\.0\.([0-9]+)$ ]]; then
-                PATCH="${BASH_REMATCH[1]}"
+                PATCH=$(( 10#${BASH_REMATCH[1]} ))  # Force base-10 to handle leading zeros
                 if [[ "$PATCH" -gt "$HIGHEST_PATCH" ]]; then
                   HIGHEST_PATCH=$PATCH
                 fi
               fi
-            done < <(git tag -l "v0.0.*" 2>/dev/null)
+            done < <(git tag -l "v0.0.[0-9]*" 2>/dev/null)
             
             NEXT_PATCH=$((HIGHEST_PATCH + 1))
             TAG_NAME="v0.0.${NEXT_PATCH}"
