@@ -55,9 +55,9 @@ jobs:
             exit 0
           fi
           
-          # Validate version follows semantic versioning pattern (0.0.0)
+          # Validate version follows semantic versioning pattern (X.Y.Z)
           if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "VERSION file does not follow semantic versioning pattern (0.0.0): $VERSION"
+            echo "VERSION file does not follow semantic versioning pattern (X.Y.Z): $VERSION"
             exit 1
           fi
           
@@ -76,10 +76,13 @@ jobs:
             # Find the highest rc variant for this version
             HIGHEST_RC=0
             while IFS= read -r tag; do
-              # Extract number after -rc. using parameter expansion
-              RC_PART="${tag##*-rc.}"
-              if [[ "$RC_PART" =~ ^[0-9]+$ ]] && [[ "$RC_PART" -gt "$HIGHEST_RC" ]]; then
-                HIGHEST_RC=$RC_PART
+              # Only process tags that match the expected format exactly
+              if [[ "$tag" =~ ^${TAG_PREFIX}-rc\.[0-9]+$ ]]; then
+                # Extract number after -rc. using parameter expansion
+                RC_PART="${tag##*-rc.}"
+                if [[ "$RC_PART" =~ ^[0-9]+$ ]] && [[ "$RC_PART" -gt "$HIGHEST_RC" ]]; then
+                  HIGHEST_RC=$RC_PART
+                fi
               fi
             done < <(git tag -l "${TAG_PREFIX}-rc.*" 2>/dev/null)
             
@@ -92,10 +95,13 @@ jobs:
             # Find the highest alpha variant for this version
             HIGHEST_ALPHA=0
             while IFS= read -r tag; do
-              # Extract number after -alpha. using parameter expansion
-              ALPHA_PART="${tag##*-alpha.}"
-              if [[ "$ALPHA_PART" =~ ^[0-9]+$ ]] && [[ "$ALPHA_PART" -gt "$HIGHEST_ALPHA" ]]; then
-                HIGHEST_ALPHA=$ALPHA_PART
+              # Only process tags that match the expected format exactly
+              if [[ "$tag" =~ ^${TAG_PREFIX}-alpha\.[0-9]+$ ]]; then
+                # Extract number after -alpha. using parameter expansion
+                ALPHA_PART="${tag##*-alpha.}"
+                if [[ "$ALPHA_PART" =~ ^[0-9]+$ ]] && [[ "$ALPHA_PART" -gt "$HIGHEST_ALPHA" ]]; then
+                  HIGHEST_ALPHA=$ALPHA_PART
+                fi
               fi
             done < <(git tag -l "${TAG_PREFIX}-alpha.*" 2>/dev/null)
             
