@@ -1,11 +1,6 @@
 name: Test Coverage Check
 
 on:
-  pull_request:
-    branches: [ main, release, develop ]
-    paths:
-      - 'main/*.c'
-      - 'main/*.h'
   workflow_call:
     inputs:
       artifact_retention_days:
