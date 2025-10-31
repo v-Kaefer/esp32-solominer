@@ -4,7 +4,21 @@ This directory contains the CI/CD workflows for the ESP32 Solo Miner project.
 
 ## Workflows Overview
 
-### 1. Build Workflow (`build.yml`)
+### 1. Branch Protection (`branch-protection.yml`)
+**Triggers:** Pull requests to main/release (opened, synchronize, reopened, labeled, unlabeled)
+**Purpose:** Enforces branch protection rules to maintain code quality and stability
+
+**What it does:**
+- Validates that PRs to `release` branch only come from `main` branch
+- Validates that PRs to `main` branch only come from `develop` branch OR branches with `🚑 hotfix` label
+- Posts comments on PRs indicating pass/fail status with helpful guidance
+- Fails the workflow if branch protection rules are violated
+
+**Branch Rules:**
+- `release` ← `main` only
+- `main` ← `develop` OR hotfix-labeled branches
+
+### 2. Build Workflow (`build.yml`)
 **Triggers:** Push to main/release, Pull requests to main/release, workflow_call
 **Purpose:** Compiles the ESP32-S3 project using ESP-IDF v5.1.2
 
@@ -16,7 +30,7 @@ This directory contains the CI/CD workflows for the ESP32 Solo Miner project.
 
 **Reusable:** Can be called by other workflows with configurable ESP-IDF version, target, and artifact retention.
 
-### 2. Static Analysis (`static-analysis.yml`)
+### 3. Static Analysis (`static-analysis.yml`)
 **Triggers:** Push to main/release, Pull requests to main/release, workflow_call
 **Purpose:** Runs cppcheck to detect potential code issues
 
@@ -28,7 +42,7 @@ This directory contains the CI/CD workflows for the ESP32 Solo Miner project.
 
 **Reusable:** Can be called by other workflows with configurable artifact retention.
 
-### 3. CodeQL Security Analysis (`codeql.yml`)
+### 4. CodeQL Security Analysis (`codeql.yml`)
 **Triggers:** Push to main, Pull requests to main, Weekly schedule (Mondays)
 **Purpose:** Scans for security vulnerabilities
 
@@ -38,7 +52,7 @@ This directory contains the CI/CD workflows for the ESP32 Solo Miner project.
 - Runs security and quality queries
 - Creates security alerts in GitHub Security tab
 
-### 4. Code Quality Checks (`code-quality.yml`)
+### 5. Code Quality Checks (`code-quality.yml`)
 **Triggers:** Push to main/release, Pull requests to main/release, workflow_call
 **Purpose:** Enforces code quality standards
 
@@ -53,7 +67,7 @@ This directory contains the CI/CD workflows for the ESP32 Solo Miner project.
 
 **Reusable:** Can be called by other workflows (requires GITHUB_TOKEN secret).
 
-### 5. Test Coverage Check (`test-coverage.yml`)
+### 6. Test Coverage Check (`test-coverage.yml`)
 **Triggers:** Pull requests that modify C/H files, workflow_call
 **Purpose:** Monitors test coverage and suggests tests for new features
 

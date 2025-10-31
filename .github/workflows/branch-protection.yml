@@ -1,0 +1,113 @@
+name: Branch Protection
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+    branches: [main, release]
+
+permissions:
+  pull-requests: write
+  issues: write
+
+jobs:
+  validate-branch:
+    name: Validate PR Source Branch
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check branch protection rules
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const baseBranch = context.payload.pull_request.base.ref;
+            const headBranch = context.payload.pull_request.head.ref;
+            const prNumber = context.payload.pull_request.number;
+
+            console.log(`PR #${prNumber}: ${headBranch} → ${baseBranch}`);
+
+            // Get PR labels
+            const { data: prData } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber
+            });
+
+            const labels = prData.labels.map(label => label.name);
+            const hasHotfixLabel = labels.includes('🚑 hotfix');
+
+            console.log('PR Labels:', labels);
+            console.log('Has hotfix label:', hasHotfixLabel);
+
+            let isValid = false;
+            let errorMessage = '';
+
+            // Rule 1: release branch can only receive PRs from main
+            if (baseBranch === 'release') {
+              if (headBranch === 'main') {
+                isValid = true;
+              } else {
+                errorMessage = `❌ **Branch Protection Violation**\n\n` +
+                  `The \`release\` branch can only receive pull ` +
+                  `requests from the \`main\` branch.\n\n` +
+                  `- **Source branch:** \`${headBranch}\`\n` +
+                  `- **Target branch:** \`${baseBranch}\`\n` +
+                  `- **Required source:** \`main\`\n\n` +
+                  `Please close this PR and create a new one ` +
+                  `from the \`main\` branch.`;
+              }
+            }
+
+            // Rule 2: main can only receive PRs from develop, except hotfix
+            else if (baseBranch === 'main') {
+              if (headBranch === 'develop') {
+                isValid = true;
+              } else if (hasHotfixLabel) {
+                isValid = true;
+                const msg = 'Hotfix exception applied';
+                console.log(`✓ ${msg} - allowing PR to main branch`);
+              } else {
+                errorMessage = `❌ **Branch Protection Violation**\n\n` +
+                  `The \`main\` branch can only receive pull requests ` +
+                  `from the \`develop\` branch, or from branches ` +
+                  `labeled with \`🚑 hotfix\`.\n\n` +
+                  `- **Source branch:** \`${headBranch}\`\n` +
+                  `- **Target branch:** \`${baseBranch}\`\n` +
+                  `- **Required source:** \`develop\` ` +
+                  `OR branch with \`🚑 hotfix\` label\n\n` +
+                  `**Options to fix this:**\n` +
+                  `1. Close this PR and create a new one ` +
+                  `from the \`develop\` branch, OR\n` +
+                  `2. Add the \`🚑 hotfix\` label to this PR ` +
+                  `if this is a critical hotfix`;
+              }
+            }
+
+            if (!isValid) {
+              // Post comment on the PR
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body: errorMessage
+              });
+
+              // Fail the check
+              core.setFailed(errorMessage);
+            } else {
+              console.log('✓ Branch protection rules satisfied');
+
+              // Post success comment
+              const successMessage =
+                `✅ **Branch Protection Check Passed**\n\n` +
+                `This PR follows the branch protection rules:\n` +
+                `- **Source:** \`${headBranch}\`\n` +
+                `- **Target:** \`${baseBranch}\`\n` +
+                (hasHotfixLabel ?
+                  `- **Note:** Hotfix exception applied\n` : '');
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body: successMessage
+              });
+            }
