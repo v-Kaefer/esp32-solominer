@@ -5,16 +5,17 @@ This directory contains the CI/CD workflows for the ESP32 Solo Miner project.
 ## Workflows Overview
 
 ### 1. Build and Security Analysis (`build-and-analyze.yml`)
-**Triggers:** Push to main, Pull requests to main, Weekly schedule (Mondays)
+**Triggers:** Called by other workflows (workflow_call)
 **Purpose:** Orchestrates build and security analysis by calling modular workflows
 
 **What it does:**
 - Calls the Build workflow (build.yml) to compile the project
 - Calls the CodeQL workflow (codeql.yml) to perform security analysis
-- Keeps workflows modular and reusable
+- Consolidates all workflows that require a build process
+- Can be called from other workflows or triggered manually
 
 ### 2. Build Workflow (`build.yml`)
-**Triggers:** Push to main, Pull requests to main, Called by other workflows
+**Triggers:** Called by other workflows (workflow_call)
 **Purpose:** Compiles the ESP32-S3 project using ESP-IDF v5.1.2
 
 **What it does:**
@@ -24,7 +25,7 @@ This directory contains the CI/CD workflows for the ESP32 Solo Miner project.
 - Archives build artifacts (binaries, ELF, map files)
 
 ### 3. CodeQL Security Analysis (`codeql.yml`)
-**Triggers:** Push to main, Pull requests to main, Weekly schedule (Mondays), Called by other workflows
+**Triggers:** Called by other workflows (workflow_call)
 **Purpose:** Scans for security vulnerabilities
 
 **What it does:**

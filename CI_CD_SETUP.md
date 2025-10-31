@@ -5,11 +5,12 @@ This repository uses GitHub Actions for continuous integration and continuous de
 ## 🚀 Quick Start
 
 When you create a pull request, the following checks will run automatically:
-1. ✅ **Build & Security Analysis** - Compiles your code for ESP32-S3 and analyzes for vulnerabilities
-2. 🔍 **Static Analysis** - Checks for common bugs and code issues
-3. 📝 **Code Quality** - Validates formatting and best practices
-4. 🧪 **Test Coverage** - Suggests tests for new features
-5. 📚 **Documentation** - Checks if docs need updating
+1. 🔍 **Static Analysis** - Checks for common bugs and code issues
+2. 📝 **Code Quality** - Validates formatting and best practices
+3. 🧪 **Test Coverage** - Suggests tests for new features
+4. 📚 **Documentation** - Checks if docs need updating
+
+**Note:** The Build & Security Analysis workflow is available as a reusable workflow that can be called by other workflows or triggered manually to consolidate all build-dependent tests.
 
 ## 📊 Workflow Status
 
@@ -19,20 +20,21 @@ All workflow statuses can be viewed in the [Actions tab](../../actions).
 
 ### Build and Security Analysis
 Orchestrates build and security analysis by calling modular workflows.
-- Runs on: Push to main, Pull requests, Weekly (Monday)
+- Runs on: Called by other workflows (workflow_call)
 - Duration: ~10-15 minutes (runs Build and CodeQL workflows)
 - Artifacts: Build binaries (30 days)
 - Results: GitHub Security tab
+- **Purpose:** Consolidates all workflows that require a build process
 
 ### Build Workflow
 Compiles the project using ESP-IDF v5.1.2 for ESP32-S3 target.
-- Runs on: Push to main, Pull requests, Called by other workflows
+- Runs on: Called by other workflows (workflow_call)
 - Duration: ~5-10 minutes
 - Artifacts: Build binaries (30 days)
 
 ### CodeQL Security Analysis
 Performs security-focused code analysis.
-- Runs on: Push to main, Pull requests, Weekly (Monday), Called by other workflows
+- Runs on: Called by other workflows (workflow_call)
 - Duration: ~10-15 minutes
 - Results: GitHub Security tab
 
