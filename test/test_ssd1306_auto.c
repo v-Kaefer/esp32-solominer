@@ -3,8 +3,6 @@
 #include "unity.h"
 #include "ssd1306.h"
 
-// Include headers for functions being tested
-
 // Mock I2C port for testing
 #define TEST_I2C_PORT I2C_NUM_0
 

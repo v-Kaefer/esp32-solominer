@@ -117,12 +117,20 @@ void test_{func.name}_return_value(void)
 def generate_test_file(functions: List[detect_features.FunctionInfo], module_name: str) -> str:
     """Generate a complete test file for a module"""
     
+    # Determine which headers are needed based on the module
+    module_headers = set()
+    for func in functions:
+        # Extract module name from file path to include appropriate header
+        file_path = Path(func.file_path)
+        if file_path.stem != 'main':  # Don't include main.h if it exists
+            module_headers.add(f'"{file_path.stem}.h"')
+    
+    header_includes = '\n'.join(f'#include {h}' for h in sorted(module_headers))
+    
     header = f"""#include <string.h>
 #include <stdint.h>
 #include "unity.h"
-
-// Include headers for functions being tested
-// TODO: Add appropriate include files
+{header_includes if header_includes else ''}
 
 void setUp(void)
 {{

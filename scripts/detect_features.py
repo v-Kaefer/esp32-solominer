@@ -30,9 +30,6 @@ EXCLUDED_FUNCTIONS = {
     'vTaskDelay', 'printf', 'ESP_LOGI', 'ESP_LOGW', 'ESP_LOGE'
 }
 
-# Return types that indicate non-testable functions
-NON_TESTABLE_RETURN_TYPES = {'void'}
-
 
 class FunctionInfo:
     """Information about a detected function"""
