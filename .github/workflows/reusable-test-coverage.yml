@@ -51,7 +51,9 @@ jobs:
           if [ -f "$file" ]; then
             echo "#### $file" >> test_report.md
             # Find function definitions - look for return type, function name, and opening paren
-            # This is a simple heuristic that may not catch all functions
+            # Note: This is a simplified heuristic for informational purposes only
+            # It may miss: pointer returns, const qualifiers, static functions, etc.
+            # For precise analysis, use a proper C parser
             grep -nE '^[a-zA-Z_][a-zA-Z0-9_]*[[:space:]]+[a-zA-Z_][a-zA-Z0-9_]*[[:space:]]*\(' "$file" | head -20 >> test_report.md || echo "No obvious functions found" >> test_report.md
             echo "" >> test_report.md
           fi

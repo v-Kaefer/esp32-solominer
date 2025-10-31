@@ -127,7 +127,10 @@ jobs:
         LONG_FUNCS_FOUND=false
         for file in main/*.c; do
           # Look for function definitions with return type, name, and opening brace pattern
-          # This is a simple heuristic and may not catch all cases
+          # Note: This is a simplified heuristic for warning purposes only
+          # It may miss: pointer returns, static functions, nested scopes, etc.
+          # Assumes closing braces are at the start of a line (common in this codebase)
+          # For precise analysis, use a proper C parser or static analysis tool
           if awk '/^[a-zA-Z_][a-zA-Z0-9_]*[[:space:]]+[a-zA-Z_][a-zA-Z0-9_]*[[:space:]]*\(/ {start=NR; fname=$0} /^}/ && start {if (NR-start > 200) print FILENAME":"start": Function too long ("NR-start" lines): "fname; start=0}' "$file" > /tmp/long_funcs_${file##*/}.txt 2>&1; then
             if [ -s /tmp/long_funcs_${file##*/}.txt ]; then
               cat /tmp/long_funcs_${file##*/}.txt
