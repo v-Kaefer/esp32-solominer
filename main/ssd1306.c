@@ -89,6 +89,11 @@ static esp_err_t ssd1306_write_command(SSD1306_t *dev, uint8_t command) {
     i2c_master_stop(cmd);
     esp_err_t ret = i2c_master_cmd_begin(dev->i2c_port, cmd, pdMS_TO_TICKS(1000));
     i2c_cmd_link_delete(cmd);
+    
+    if (ret != ESP_OK) {
+        ESP_LOGD(TAG, "Command 0x%02X failed: %s", command, esp_err_to_name(ret));
+    }
+    
     return ret;
 }
 

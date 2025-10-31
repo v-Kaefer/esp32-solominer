@@ -49,6 +49,30 @@ esp_err_t display_init_i2c(void)
     }
     
     ESP_LOGI(TAG, "I2C initialized on SDA=%d, SCL=%d", DISPLAY_I2C_SDA_GPIO, DISPLAY_I2C_SCL_GPIO);
+    
+    // Scan I2C bus for devices
+    ESP_LOGI(TAG, "Scanning I2C bus...");
+    int devices_found = 0;
+    for (uint8_t addr = 1; addr < 127; addr++) {
+        i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+        i2c_master_start(cmd);
+        i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_WRITE, true);
+        i2c_master_stop(cmd);
+        esp_err_t ret = i2c_master_cmd_begin(DISPLAY_I2C_PORT, cmd, pdMS_TO_TICKS(50));
+        i2c_cmd_link_delete(cmd);
+        
+        if (ret == ESP_OK) {
+            ESP_LOGI(TAG, "I2C device found at address 0x%02X", addr);
+            devices_found++;
+        }
+    }
+    
+    if (devices_found == 0) {
+        ESP_LOGW(TAG, "No I2C devices found! Check wiring.");
+    } else {
+        ESP_LOGI(TAG, "Found %d I2C device(s)", devices_found);
+    }
+    
     return ESP_OK;
 }
 
