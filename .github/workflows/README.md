@@ -5,7 +5,7 @@ This directory contains the CI/CD workflows for the ESP32 Solo Miner project.
 ## Workflows Overview
 
 ### 1. Build Workflow (`build.yml`)
-**Triggers:** Push to main, Pull requests to main
+**Triggers:** Push to main/release, Pull requests to main/release, workflow_call
 **Purpose:** Compiles the ESP32-S3 project using ESP-IDF v5.1.2
 
 **What it does:**
@@ -14,8 +14,10 @@ This directory contains the CI/CD workflows for the ESP32 Solo Miner project.
 - Builds the project for ESP32-S3 target
 - Archives build artifacts (binaries, ELF, map files)
 
+**Reusable:** Can be called by other workflows with configurable ESP-IDF version, target, and artifact retention.
+
 ### 2. Static Analysis (`static-analysis.yml`)
-**Triggers:** Push to main, Pull requests to main
+**Triggers:** Push to main/release, Pull requests to main/release, workflow_call
 **Purpose:** Runs cppcheck to detect potential code issues
 
 **What it does:**
@@ -23,6 +25,8 @@ This directory contains the CI/CD workflows for the ESP32 Solo Miner project.
 - Checks for memory leaks, undefined behavior
 - Identifies unused functions and variables
 - Generates detailed analysis report
+
+**Reusable:** Can be called by other workflows with configurable artifact retention.
 
 ### 3. CodeQL Security Analysis (`codeql.yml`)
 **Triggers:** Push to main, Pull requests to main, Weekly schedule (Mondays)
@@ -35,7 +39,7 @@ This directory contains the CI/CD workflows for the ESP32 Solo Miner project.
 - Creates security alerts in GitHub Security tab
 
 ### 4. Code Quality Checks (`code-quality.yml`)
-**Triggers:** Push to main, Pull requests to main
+**Triggers:** Push to main/release, Pull requests to main/release, workflow_call
 **Purpose:** Enforces code quality standards
 
 **What it does:**
@@ -45,9 +49,12 @@ This directory contains the CI/CD workflows for the ESP32 Solo Miner project.
 - Identifies unsafe C functions (gets, strcpy, etc.)
 - Finds TODO/FIXME comments
 - Checks for overly long functions (>200 lines)
+- Automatically creates GitHub issues on PR failures with assistance prompts
+
+**Reusable:** Can be called by other workflows (requires GITHUB_TOKEN secret).
 
 ### 5. Test Coverage Check (`test-coverage.yml`)
-**Triggers:** Pull requests that modify C/H files
+**Triggers:** Pull requests that modify C/H files, workflow_call
 **Purpose:** Monitors test coverage and suggests tests for new features
 
 **What it does:**
@@ -57,6 +64,8 @@ This directory contains the CI/CD workflows for the ESP32 Solo Miner project.
 - Generates test coverage report
 - Comments on PR with recommendations
 - Suggests unit tests for mining functions, initialization routines
+
+**Reusable:** Can be called by other workflows with configurable artifact retention.
 
 ### 6. Documentation Check (`documentation.yml`)
 **Triggers:** Pull requests to main
@@ -105,6 +114,29 @@ Workflows generate artifacts that can be downloaded from the Actions tab:
 - **build-artifacts**: Compiled binaries and map files (30 days retention)
 - **cppcheck-report**: Static analysis results (30 days retention)
 - **test-coverage-report**: Test suggestions (30 days retention)
+
+## Reusable Workflows
+
+Several workflows support `workflow_call` trigger, allowing them to be called by other workflows for consistency and reusability:
+
+- **build.yml** - Accepts parameters for ESP-IDF version, target, and artifact retention
+- **static-analysis.yml** - Accepts parameter for artifact retention
+- **code-quality.yml** - Requires GITHUB_TOKEN secret
+- **test-coverage.yml** - Accepts parameter for artifact retention
+
+### Example: Calling a workflow
+
+```yaml
+jobs:
+  build:
+    uses: ./.github/workflows/build.yml
+    with:
+      esp_idf_version: v5.1.2
+      target: esp32s3
+      artifact_retention_days: 30
+```
+
+This design allows workflows like `pr-checks.yml` and `main-release-checks.yml` to orchestrate multiple checks while keeping workflow definitions DRY (Don't Repeat Yourself).
 
 ## Troubleshooting
 

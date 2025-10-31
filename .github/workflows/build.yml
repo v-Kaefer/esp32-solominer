@@ -2,29 +2,46 @@ name: Build ESP32 Project
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, release ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, release ]
+  workflow_call:
+    inputs:
+      esp_idf_version:
+        description: 'ESP-IDF version to use'
+        required: false
+        type: string
+        default: 'v5.1.2'
+      target:
+        description: 'ESP32 target'
+        required: false
+        type: string
+        default: 'esp32s3'
+      artifact_retention_days:
+        description: 'Number of days to retain artifacts'
+        required: false
+        type: number
+        default: 30
 
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
         submodules: 'recursive'
-    
+
     - name: Build with ESP-IDF
       uses: espressif/esp-idf-ci-action@v1
       with:
-        esp_idf_version: v5.1.2
-        target: esp32s3
+        esp_idf_version: ${{ inputs.esp_idf_version || 'v5.1.2' }}
+        target: ${{ inputs.target || 'esp32s3' }}
         path: '.'
-    
+
     - name: Archive build artifacts
       if: success()
       uses: actions/upload-artifact@v4
@@ -34,4 +51,4 @@ jobs:
           build/*.bin
           build/*.elf
           build/*.map
-        retention-days: 30
+        retention-days: ${{ inputs.artifact_retention_days || 30 }}
