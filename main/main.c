@@ -194,8 +194,8 @@ void update_display(float hashrate)
     ssd1306_display_text(&dev, 5, line, strlen(line), false);
     
     // Color zone indicators - Page 6-7 (Bottom blue zone)
-    ssd1306_display_text(&dev, 6, "COLOR TEST", 10, false);
-    ssd1306_display_text(&dev, 7, "YELLOW-TOP BLUE-BTM", 19, false);
+    ssd1306_display_text(&dev, 6, "COLOR TEST", strlen("COLOR TEST"), false);
+    ssd1306_display_text(&dev, 7, "YELLOW-TOP BLUE-BTM", strlen("YELLOW-TOP BLUE-BTM"), false);
 }
 
 // Mining task
