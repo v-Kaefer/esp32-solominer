@@ -27,42 +27,50 @@ jobs:
         git diff --name-only origin/main...HEAD | grep -E '\.(c|h)$' > changed_files.txt || echo "No C files changed"
         cat changed_files.txt
     
-    - name: Check for new functions
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+    
+    - name: Run Feature Detector
+      id: feature-detector
       run: |
-        echo "## Test Coverage Analysis" > test_report.md
+        # Run the feature detector script
+        python3 scripts/detect_features.py . > feature_report.txt 2>&1 || true
+        
+        # Create markdown report
+        echo "## 🔍 Test Coverage Analysis" > test_report.md
         echo "" >> test_report.md
         
         if [ ! -s changed_files.txt ]; then
           echo "No C/C++ files were changed in this PR." >> test_report.md
-          exit 0
+        else
+          echo "### Changed Files:" >> test_report.md
+          echo '```' >> test_report.md
+          cat changed_files.txt >> test_report.md
+          echo '```' >> test_report.md
+          echo "" >> test_report.md
         fi
         
-        echo "### Changed Files:" >> test_report.md
-        cat changed_files.txt >> test_report.md
+        # Add feature detector output
+        echo "### Feature Implementation Analysis:" >> test_report.md
+        echo '```' >> test_report.md
+        cat feature_report.txt >> test_report.md
+        echo '```' >> test_report.md
         echo "" >> test_report.md
         
-        # Look for new functions in changed files
-        echo "### Functions Found in Changed Files:" >> test_report.md
-        for file in $(cat changed_files.txt); do
-          if [ -f "$file" ]; then
-            echo "#### $file" >> test_report.md
-            # Find function definitions (simple heuristic)
-            grep -n "^[a-zA-Z_][a-zA-Z0-9_]*.*(.*)" "$file" | head -20 >> test_report.md || echo "No functions found" >> test_report.md
-            echo "" >> test_report.md
-          fi
-        done
-        
-        # Check if test directory exists
-        echo "### Test Coverage Status:" >> test_report.md
-        if [ -d "test" ] || [ -d "tests" ] || [ -d "main/test" ]; then
-          echo "✅ Test directory exists" >> test_report.md
+        # Check if there are untested functions
+        if grep -q "Functions without tests: 0" feature_report.txt; then
+          echo "### ✅ Test Coverage Status" >> test_report.md
+          echo "All public functions have unit tests!" >> test_report.md
         else
-          echo "⚠️ No test directory found. Consider adding unit tests for new features." >> test_report.md
+          echo "### ⚠️ Test Coverage Status" >> test_report.md
+          echo "Some functions do not have unit tests. Please add tests for the functions listed above." >> test_report.md
           echo "" >> test_report.md
-          echo "**Recommendation:** Create a test directory and add unit tests for:" >> test_report.md
-          echo "- Mining functions (double_sha256, count_leading_zeros)" >> test_report.md
-          echo "- Block header initialization" >> test_report.md
-          echo "- WiFi and I2C initialization functions" >> test_report.md
+          echo "**How to add tests:**" >> test_report.md
+          echo "1. Add test functions to the appropriate test file in the \`test/\` directory" >> test_report.md
+          echo "2. Use the generated test stubs as a starting point" >> test_report.md
+          echo "3. Run \`python3 scripts/detect_features.py .\` locally to verify coverage" >> test_report.md
         fi
     
     - name: Upload test report
