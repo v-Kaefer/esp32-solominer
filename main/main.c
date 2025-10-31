@@ -174,8 +174,8 @@ void update_display(float hashrate)
     ssd1306_contrast(&dev, 0xff);
     
     // Title - Page 0-1 (Yellow zone on color displays)
-    ssd1306_display_text(&dev, 0, "ESP32-S3 BTC Miner", 18, false);
-    ssd1306_display_text(&dev, 1, "------------------", 18, false);
+    ssd1306_display_text(&dev, 0, "ESP32-S3 BTC Miner", strlen("ESP32-S3 BTC Miner"), false);
+    ssd1306_display_text(&dev, 1, "------------------", strlen("------------------"), false);
     
     // Hashrate - Page 2 (Blue zone on color displays)
     snprintf(line, sizeof(line), "Rate: %.1f H/s", hashrate);
@@ -234,7 +234,7 @@ void mining_task(void *pvParameters)
         if (difficulty >= 70) {
             ESP_LOGI(TAG, "!!! BLOCK FOUND !!!");
             ssd1306_clear_screen(&dev, false);
-            ssd1306_display_text(&dev, 2, "*** BLOCK FOUND ***", 19, false);
+            ssd1306_display_text(&dev, 2, "*** BLOCK FOUND ***", strlen("*** BLOCK FOUND ***"), false);
             vTaskDelay(pdMS_TO_TICKS(10000));
         }
         
@@ -304,19 +304,19 @@ void app_main(void)
 
     ssd1306_contrast(&dev, 0xff);
     
-    ssd1306_display_text(&dev, 0, "ESP32-S3 Miner", 14, false);
-    ssd1306_display_text(&dev, 2, "Initializing...", 15, false);
+    ssd1306_display_text(&dev, 0, "ESP32-S3 Miner", strlen("ESP32-S3 Miner"), false);
+    ssd1306_display_text(&dev, 2, "Initializing...", strlen("Initializing..."), false);
     
 #ifdef WIFI_SSID
     // Initialize WiFi
     ESP_LOGI(TAG, "Initializing WiFi...");
     wifi_init();
     
-    ssd1306_display_text(&dev, 3, "WiFi Connecting...", 18, false);
+    ssd1306_display_text(&dev, 3, "WiFi Connecting...", strlen("WiFi Connecting..."), false);
     vTaskDelay(pdMS_TO_TICKS(5000));
 #endif
     
-    ssd1306_display_text(&dev, 4, "Starting mining!", 16, false);
+    ssd1306_display_text(&dev, 4, "Starting mining!", strlen("Starting mining!"), false);
     vTaskDelay(pdMS_TO_TICKS(2000));
     
     // Create mining task on Core 1 for maximum performance
