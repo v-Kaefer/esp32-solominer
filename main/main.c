@@ -15,6 +15,7 @@
 #include "driver/i2c.h"
 #include "driver/gpio.h"
 #include "ssd1306.h"
+#include "driver/i2c_master.h"
 #include "config.h"
 
 // I2C Configuration for OLED
@@ -94,26 +95,6 @@ void wifi_init(void)
 }
 
 #endif // WIFI_SSID
-
-// Initialize I2C for OLED
-esp_err_t i2c_master_init(void)
-{
-    i2c_config_t conf = {
-        .mode = I2C_MODE_MASTER,
-        .sda_io_num = I2C_MASTER_SDA_IO,
-        .scl_io_num = I2C_MASTER_SCL_IO,
-        .sda_pullup_en = GPIO_PULLUP_ENABLE,
-        .scl_pullup_en = GPIO_PULLUP_ENABLE,
-        .master.clk_speed = I2C_MASTER_FREQ_HZ,
-    };
-    
-    esp_err_t err = i2c_param_config(I2C_MASTER_NUM, &conf);
-    if (err != ESP_OK) {
-        return err;
-    }
-    
-    return i2c_driver_install(I2C_MASTER_NUM, conf.mode, 0, 0, 0);
-}
 
 // Double SHA256 hash
 void double_sha256(const uint8_t* data, size_t len, uint8_t* hash)
@@ -280,27 +261,6 @@ void mining_task(void *pvParameters)
     }
 }
 
-
-
-static void i2c_init_fixed(void)
-{
-    i2c_config_t conf = {
-        .mode = I2C_MODE_MASTER,
-        .sda_io_num    = I2C_MASTER_SDA_IO,
-        .sda_pullup_en = GPIO_PULLUP_ENABLE,
-        .scl_io_num    = I2C_MASTER_SCL_IO,
-        .scl_pullup_en = GPIO_PULLUP_ENABLE,
-        .master.clk_speed = I2C_MASTER_FREQ_HZ,
-    };
-
-    ESP_ERROR_CHECK(i2c_param_config(I2C_MASTER_NUM, &conf));
-    ESP_ERROR_CHECK(i2c_driver_install(I2C_MASTER_NUM,
-                                       conf.mode,
-                                       0, // rx buf disabled master
-                                       0, // tx buf disabled master
-                                       0));
-}
-
 void app_main(void)
 {
     ESP_LOGI(TAG, "ESP32-S3 Bitcoin Miner Starting...");
@@ -313,22 +273,44 @@ void app_main(void)
     }
     ESP_ERROR_CHECK(ret);
     
-    // Initialize I2C
-    ESP_LOGI(TAG, "Initializing I2C...");
-    i2c_init_fixed();
+    // Initialize I2C using new modular driver
+    ESP_LOGI(TAG, "Initializing I2C with new modular driver...");
+    i2c_master_config_t i2c_config = I2C_MASTER_DEFAULT_CONFIG();
+    ESP_ERROR_CHECK(i2c_master_init(&i2c_config));
+    
+    // Validate voltage range for display
+    // Using typical ESP32 operating voltage (3.3V)
+    if (!i2c_master_validate_voltage(DISPLAY_VOLTAGE_TYPICAL_MV)) {
+        ESP_LOGW(TAG, "Operating voltage outside recommended range");
+    }
+    
+    // Detect and initialize OLED display with SSD1306/SSD1315 support
+    ESP_LOGI(TAG, "Initializing OLED display...");
+    display_driver_ic_t detected_driver = DISPLAY_DRIVER_SSD1306;
+    esp_err_t probe_result = i2c_master_detect_driver(I2C_MASTER_NUM, 0x3C, &detected_driver);
+    
+    if (probe_result == ESP_OK) {
+        ESP_LOGI(TAG, "Display detected: %s", i2c_master_get_driver_name(detected_driver));
+        // Initialize display with detected driver IC
+        i2c_master_init_ssd1306_ex(&dev, I2C_MASTER_NUM, 128, 64, 0x3C, detected_driver);
+    } else {
+        ESP_LOGW(TAG, "Could not detect display, using default SSD1306 initialization");
+        i2c_master_init_ssd1306(&dev, I2C_MASTER_NUM, 128, 64, 0x3C);
+    }
 
-    // Initialize OLED
-    ESP_LOGI(TAG, "Initializing OLED...");
-    i2c_master_init_ssd1306(&dev, I2C_MASTER_NUM, 128, 64, 0x3C);
     ssd1306_contrast(&dev, 0xff);
     
     ssd1306_display_text(&dev, 0, "ESP32-S3 Miner", 14, false);
     ssd1306_display_text(&dev, 2, "Initializing...", 15, false);
     
-    // Passive mining mode - no WiFi required
-    ESP_LOGI(TAG, "Starting passive mining mode...");
-    ssd1306_display_text(&dev, 3, "Passive Mining", 14, false);
-    vTaskDelay(pdMS_TO_TICKS(2000));
+#ifdef WIFI_SSID
+    // Initialize WiFi
+    ESP_LOGI(TAG, "Initializing WiFi...");
+    wifi_init();
+    
+    ssd1306_display_text(&dev, 3, "WiFi Connecting...", 18, false);
+    vTaskDelay(pdMS_TO_TICKS(5000));
+#endif
     
     ssd1306_display_text(&dev, 4, "Starting mining!", 16, false);
     vTaskDelay(pdMS_TO_TICKS(2000));

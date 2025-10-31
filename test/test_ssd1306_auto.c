@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include "unity.h"
 #include "ssd1306.h"
+#include "driver/i2c_master.h"
 
 // Mock I2C port for testing
 #define TEST_I2C_PORT I2C_NUM_0
