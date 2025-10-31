@@ -155,10 +155,11 @@ IRAM_ATTR static inline void sha256_transform(/* params */) {
 
 ### Temperature Monitoring
 ```c
-float temp = temprature_read();  // Note: typo in actual code
+// Example pattern for temperature monitoring
+float temp = read_temperature();
 if (temp > 80.0f) {
     ESP_LOGW(TAG, "High temperature: %.1f°C - Consider cooling", temp);
-    // Throttle or warn user
+    // Implement throttling or warn user
 }
 ```
 
