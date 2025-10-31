@@ -1,4 +1,4 @@
 idf_component_register(
-    SRCS "main.c"
+    SRCS "ssd1306.c" "main.c"
     INCLUDE_DIRS "."
 )
