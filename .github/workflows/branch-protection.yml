@@ -24,14 +24,10 @@ jobs:
 
             console.log(`PR #${prNumber}: ${headBranch} → ${baseBranch}`);
 
-            // Get PR labels
-            const { data: prData } = await github.rest.pulls.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: prNumber
-            });
-
-            const labels = prData.labels.map(label => label.name);
+            // Get PR labels from payload
+            const labels = context.payload.pull_request.labels.map(
+              label => label.name
+            );
             const hasHotfixLabel = labels.includes('🚑 hotfix');
 
             console.log('PR Labels:', labels);
@@ -94,20 +90,7 @@ jobs:
               core.setFailed(errorMessage);
             } else {
               console.log('✓ Branch protection rules satisfied');
-
-              // Post success comment
-              const successMessage =
-                `✅ **Branch Protection Check Passed**\n\n` +
-                `This PR follows the branch protection rules:\n` +
-                `- **Source:** \`${headBranch}\`\n` +
-                `- **Target:** \`${baseBranch}\`\n` +
-                (hasHotfixLabel ?
-                  `- **Note:** Hotfix exception applied\n` : '');
-
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: prNumber,
-                body: successMessage
-              });
+              if (hasHotfixLabel) {
+                console.log('  (Hotfix exception applied)');
+              }
             }
