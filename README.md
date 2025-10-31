@@ -18,7 +18,7 @@ This is a learning project focused on:
 - Ensuring safety, privacy, and modularity
 - Building an ESP32 Bitcoin miner from scratch
 
-## 📚 Mining Strategy Documentation
+## 📚 Documentation
 
 **New to ESP32 Bitcoin mining? Start here:**
 
@@ -31,6 +31,8 @@ These guides cover:
 - Performance benchmarks and expectations
 - Thermal management and active cooling recommendations
 - Optimization techniques and troubleshooting
+
+For a complete guide to all documentation in this repository, see **[Documentation Structure](DOCUMENTATION_STRUCTURE.md)**.
 
 ## WiFi Configuration
 
