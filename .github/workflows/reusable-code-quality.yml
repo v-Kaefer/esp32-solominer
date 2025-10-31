@@ -1,13 +1,10 @@
-name: Code Quality Checks (Deprecated)
-
-# This workflow has been replaced by pr-checks.yml for pull requests.
-# 
-# This file is kept for backward compatibility and will be removed in a future update.
+name: Reusable Code Quality Checks
 
 on:
-  push:
-    branches: [ develop ]  # Only trigger on develop branch now
-  workflow_dispatch:  # Allow manual triggers
+  workflow_call:
+    secrets:
+      GITHUB_TOKEN:
+        required: true
 
 jobs:
   lint:
@@ -16,11 +13,11 @@ jobs:
       contents: read
       issues: write
       pull-requests: write
-    
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-    
+
     - name: Check for trailing whitespace
       id: trailing_whitespace
       continue-on-error: true
@@ -39,7 +36,7 @@ jobs:
           echo "No trailing whitespace found"
           echo "✅ No trailing whitespace found" >> $GITHUB_STEP_SUMMARY
         fi
-    
+
     - name: Check file encodings
       id: file_encodings
       continue-on-error: true
@@ -58,7 +55,7 @@ jobs:
           echo "All files are UTF-8 or ASCII"
           echo "✅ All files are UTF-8 or ASCII" >> $GITHUB_STEP_SUMMARY
         fi
-    
+
     - name: Check for common security issues
       id: security_issues
       continue-on-error: true
@@ -66,7 +63,7 @@ jobs:
         echo "Checking for common security issues..."
         echo "## Security Issues Check" >> $GITHUB_STEP_SUMMARY
         SECURITY_FAILED=false
-        
+
         # Check for hardcoded credentials (excluding example files)
         if grep -rn --include="*.c" --include="*.h" --exclude="*example*" -E '(password|passwd|pwd|secret|token|api_key).*=.*"[^"]{3,}"' main/ > /tmp/credentials.txt 2>&1; then
           echo "Warning: Possible hardcoded credentials found"
@@ -78,7 +75,7 @@ jobs:
           cat /tmp/credentials.txt >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
         fi
-        
+
         # Check for unsafe functions
         if grep -rn --include="*.c" -E '\b(gets|strcpy|strcat|sprintf|vsprintf)\(' main/ > /tmp/unsafe_funcs.txt 2>&1; then
           echo "Warning: Unsafe C functions found. Consider using safer alternatives:"
@@ -102,29 +99,29 @@ jobs:
           echo "- sprintf() -> snprintf()" >> $GITHUB_STEP_SUMMARY
           echo "- vsprintf() -> vsnprintf()" >> $GITHUB_STEP_SUMMARY
         fi
-        
+
         # Check for TODO/FIXME comments
         echo "Checking for TODO/FIXME comments..."
         if ! grep -rn --include="*.c" --include="*.h" -E '(TODO|FIXME|XXX|HACK)' main/ > /tmp/todo_comments.txt 2>&1; then
           echo "No TODO/FIXME comments found"
           echo "✅ No TODO/FIXME comments found" >> $GITHUB_STEP_SUMMARY
         fi
-        
+
         if [ "$SECURITY_FAILED" = "true" ]; then
           exit 1
         fi
-    
+
     - name: Check code structure
       id: code_structure
       continue-on-error: true
       run: |
         echo "Analyzing code structure..."
         echo "## Code Structure Check" >> $GITHUB_STEP_SUMMARY
-        
+
         # Count lines of code
         echo "Lines of code:"
         find main/ -name "*.c" -exec wc -l {} + | tail -1
-        
+
         # Check for overly long functions (simple heuristic)
         echo "Checking for long functions (>200 lines)..."
         LONG_FUNCS_FOUND=false
@@ -136,7 +133,7 @@ jobs:
             fi
           fi
         done
-        
+
         if [ "$LONG_FUNCS_FOUND" = "true" ]; then
           echo "STRUCTURE_FAILED=true" >> $GITHUB_ENV
           echo "⚠️ Long functions found (>200 lines)" >> $GITHUB_STEP_SUMMARY
@@ -145,14 +142,15 @@ jobs:
           echo "No excessively long functions found"
           echo "✅ No excessively long functions found" >> $GITHUB_STEP_SUMMARY
         fi
-    
+
     - name: Create issue on failure
       if: failure() && github.event_name == 'pull_request'
       uses: actions/github-script@v7
       with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
           const fs = require('fs');
-          
+
           // Check for existing open issues for this PR
           const existingIssues = await github.rest.issues.listForRepo({
             owner: context.repo.owner,
@@ -161,12 +159,12 @@ jobs:
             labels: '🤖 automated,🤖 copilot',
             per_page: 100
           });
-          
+
           const prNumber = ${{ github.event.pull_request.number }};
-          const existingIssue = existingIssues.data.find(issue => 
+          const existingIssue = existingIssues.data.find(issue =>
             issue.title.includes(`PR #${prNumber}`) && issue.title.includes('Code Quality Issues')
           );
-          
+
           if (existingIssue) {
             console.log(`Issue #${existingIssue.number} already exists for this PR. Adding a comment instead.`);
             await github.rest.issues.createComment({
@@ -177,20 +175,20 @@ jobs:
             });
             return;
           }
-          
+
           // Prepare issue body
           let issueBody = `## Code Quality Check Failed\n\n`;
           issueBody += `The code quality checks failed for PR #${{ github.event.pull_request.number }}.\n\n`;
           issueBody += `**Pull Request:** ${{ github.event.pull_request.html_url }}\n`;
           issueBody += `**Workflow Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\n\n`;
           issueBody += `### Issues Found:\n\n`;
-          
+
           // Check which tests failed
           const trailingWsFailed = process.env.TRAILING_WS_FAILED === 'true';
           const encodingFailed = process.env.ENCODING_FAILED === 'true';
           const securityFailed = process.env.SECURITY_FAILED === 'true';
           const structureFailed = process.env.STRUCTURE_FAILED === 'true';
-          
+
           if (trailingWsFailed) {
             issueBody += `#### ❌ Trailing Whitespace\n\n`;
             issueBody += `Trailing whitespace was found in source files. This needs to be removed.\n\n`;
@@ -202,7 +200,7 @@ jobs:
             }
             issueBody += `**Fix:** Remove trailing whitespace from the files listed above.\n\n`;
           }
-          
+
           if (encodingFailed) {
             issueBody += `#### ❌ File Encoding Issues\n\n`;
             issueBody += `Some files are not using UTF-8 or ASCII encoding.\n\n`;
@@ -214,7 +212,7 @@ jobs:
             }
             issueBody += `**Fix:** Convert files to UTF-8 encoding.\n\n`;
           }
-          
+
           if (securityFailed) {
             issueBody += `#### ⚠️ Security Issues\n\n`;
             try {
@@ -224,7 +222,7 @@ jobs:
                 issueBody += `**Possible hardcoded credentials found:**\n\`\`\`\n${credsDetails}\n\`\`\`\n\n`;
               }
             } catch (e) {}
-            
+
             try {
               const unsafeExists = fs.existsSync('/tmp/unsafe_funcs.txt');
               if (unsafeExists) {
@@ -239,12 +237,12 @@ jobs:
               }
             } catch (e) {}
           }
-          
+
           if (structureFailed) {
             issueBody += `#### ⚠️ Code Structure Issues\n\n`;
             issueBody += `Functions longer than 200 lines were found. Consider refactoring for better maintainability.\n\n`;
           }
-          
+
           issueBody += `---\n\n`;
           issueBody += `### 🤖 GitHub Copilot Action Required\n\n`;
           issueBody += `@github/copilot please review the code quality issues listed above and provide a fix.\n\n`;
@@ -252,7 +250,7 @@ jobs:
           issueBody += `- \`@github/copilot /fix\` - Generate a fix for these issues\n`;
           issueBody += `- \`@github/copilot /explain\` - Explain the issues in detail\n\n`;
           issueBody += `**Note:** This issue was automatically created by the Code Quality workflow.`;
-          
+
           // Create the issue
           const issue = await github.rest.issues.create({
             owner: context.repo.owner,
@@ -261,9 +259,9 @@ jobs:
             body: issueBody,
             labels: ['🤖 automated', '🤖 copilot']
           });
-          
+
           console.log(`Created issue #${issue.data.number}`);
-          
+
           // Add a comment to the PR
           await github.rest.issues.createComment({
             owner: context.repo.owner,

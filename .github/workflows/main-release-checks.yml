@@ -1,0 +1,24 @@
+name: Main and Release Branch Checks
+
+on:
+  push:
+    branches: [ main, release ]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  build:
+    name: Build ESP32 Project
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      esp_idf_version: v5.1.2
+      target: esp32s3
+      artifact_retention_days: 30
+
+  static-analysis:
+    name: Static Code Analysis
+    uses: ./.github/workflows/reusable-static-analysis.yml
+    with:
+      artifact_retention_days: 30
