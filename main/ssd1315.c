@@ -81,11 +81,11 @@ static const uint8_t font5x8[][5] = {
 };
 
 static esp_err_t ssd1315_write_command(SSD1315_t *dev, uint8_t command) {
-    uint8_t data[2] = {0x00, command};
     i2c_cmd_handle_t cmd = i2c_cmd_link_create();
     i2c_master_start(cmd);
     i2c_master_write_byte(cmd, (dev->i2c_addr << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write(cmd, data, 2, true);
+    i2c_master_write_byte(cmd, 0x00, true); // Control byte for command
+    i2c_master_write_byte(cmd, command, true);
     i2c_master_stop(cmd);
     esp_err_t ret = i2c_master_cmd_begin(dev->i2c_port, cmd, pdMS_TO_TICKS(1000));
     i2c_cmd_link_delete(cmd);
