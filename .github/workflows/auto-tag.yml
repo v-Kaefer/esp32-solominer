@@ -55,25 +55,55 @@ jobs:
             exit 0
           fi
           
-          # Determine version suffix based on branch
+          # Validate version follows semantic versioning pattern (0.0.0)
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "VERSION file does not follow semantic versioning pattern (0.0.0): $VERSION"
+            exit 1
+          fi
+          
+          # Determine version suffix and variant logic based on branch
           BRANCH_NAME="${{ github.ref_name }}"
           VERSION_SUFFIX=""
+          TAG_PREFIX="v$VERSION"
           
-          if [[ "$BRANCH_NAME" == "develop" ]]; then
-            VERSION_SUFFIX="-alpha"
-            echo "Branch is develop, adding alpha suffix"
+          if [[ "$BRANCH_NAME" == "release" ]]; then
+            # Priority 1: Release branch - stable releases (v1.0.0)
+            TAG_NAME="v$VERSION"
+            echo "Branch is release, creating stable release tag"
           elif [[ "$BRANCH_NAME" == "main" ]]; then
-            VERSION_SUFFIX="-beta"
-            echo "Branch is main, adding beta suffix"
-          elif [[ "$BRANCH_NAME" == "release" ]]; then
-            VERSION_SUFFIX=""
-            echo "Branch is release, using full version"
+            # Priority 2: Main branch - release candidates (v1.0.0-rc.1, v1.0.0-rc.2, ...)
+            echo "Branch is main, creating release candidate tag"
+            
+            # Find the highest rc variant for this version
+            HIGHEST_RC=0
+            for tag in $(git tag -l "${TAG_PREFIX}-rc.*" 2>/dev/null); do
+              RC_NUM=$(echo "$tag" | grep -oP '\-rc\.\K[0-9]+$')
+              if [[ -n "$RC_NUM" ]] && [[ "$RC_NUM" -gt "$HIGHEST_RC" ]]; then
+                HIGHEST_RC=$RC_NUM
+              fi
+            done
+            
+            NEXT_RC=$((HIGHEST_RC + 1))
+            TAG_NAME="${TAG_PREFIX}-rc.${NEXT_RC}"
+          elif [[ "$BRANCH_NAME" == "develop" ]]; then
+            # Priority 3: Develop branch - alpha variants (v1.0.0-alpha.1, v1.0.0-alpha.2, ...)
+            echo "Branch is develop, creating alpha variant tag"
+            
+            # Find the highest alpha variant for this version
+            HIGHEST_ALPHA=0
+            for tag in $(git tag -l "${TAG_PREFIX}-alpha.*" 2>/dev/null); do
+              ALPHA_NUM=$(echo "$tag" | grep -oP '\-alpha\.\K[0-9]+$')
+              if [[ -n "$ALPHA_NUM" ]] && [[ "$ALPHA_NUM" -gt "$HIGHEST_ALPHA" ]]; then
+                HIGHEST_ALPHA=$ALPHA_NUM
+              fi
+            done
+            
+            NEXT_ALPHA=$((HIGHEST_ALPHA + 1))
+            TAG_NAME="${TAG_PREFIX}-alpha.${NEXT_ALPHA}"
           else
             echo "Branch $BRANCH_NAME does not match tagging criteria, skipping"
             exit 0
           fi
-          
-          TAG_NAME="v$VERSION$VERSION_SUFFIX"
           
           # Check if tag already exists
           if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
@@ -87,7 +117,7 @@ jobs:
             exit 0
           fi
           
-          echo "Creating tag $TAG_NAME for firmware version $VERSION$VERSION_SUFFIX"
-          git tag -a "$TAG_NAME" -m "ESP32 Solo Miner firmware v$VERSION$VERSION_SUFFIX"
+          echo "Creating tag $TAG_NAME for firmware version"
+          git tag -a "$TAG_NAME" -m "ESP32 Solo Miner firmware $TAG_NAME"
           git push origin "$TAG_NAME"
           echo "Tag $TAG_NAME created and pushed successfully"
