@@ -264,3 +264,8 @@ This is a **learning project** focused on:
 For the most current and detailed information, always refer to:
 - [ESP32_MINING_STRATEGIES.md](../../ESP32_MINING_STRATEGIES.md)
 - [MINING_QUICKSTART.md](../../MINING_QUICKSTART.md)
+
+## Historical Implementation Notes
+
+For detailed technical implementation notes about past features and fixes, see:
+- [implementation-notes/](implementation-notes/) - Contains detailed I2C driver updates, test infrastructure implementation, and diagnostic notes
