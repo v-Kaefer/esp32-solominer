@@ -119,9 +119,14 @@ jobs:
           fi
           
           # Check if VERSION file was changed in this push
-          if git diff --quiet ${{ github.event.before }} ${{ github.sha }} -- VERSION; then
-            echo "VERSION file not changed, skipping auto-tag"
-            exit 0
+          # Skip this check if github.event.before is not available (e.g., first push, force push)
+          if [[ -n "${{ github.event.before }}" ]]; then
+            if git diff --quiet ${{ github.event.before }} ${{ github.sha }} -- VERSION; then
+              echo "VERSION file not changed, skipping auto-tag"
+              exit 0
+            fi
+          else
+            echo "Unable to check VERSION file changes (first push or force push), proceeding with tag creation"
           fi
           
           echo "Creating tag $TAG_NAME for firmware version"
