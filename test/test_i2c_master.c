@@ -1,6 +1,6 @@
 #include <string.h>
 #include "unity.h"
-#include "../driver/i2c_master.h"
+#include "driver/i2c_master.h"
 
 // Test I2C master configuration initialization
 void test_i2c_master_config_default(void)

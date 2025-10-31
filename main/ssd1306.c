@@ -3,7 +3,7 @@
 #include "freertos/task.h"
 #include "esp_log.h"
 #include "ssd1306.h"
-#include "../driver/i2c_master.h"
+#include "driver/i2c_master.h"
 
 static const char *TAG = "SSD1306";
 

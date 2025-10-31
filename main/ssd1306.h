@@ -2,7 +2,7 @@
 #define __SSD1306_H__
 
 #include "driver/i2c.h"
-#include "../driver/i2c_master.h"
+#include "driver/i2c_master.h"
 
 typedef struct {
     i2c_port_t i2c_port;

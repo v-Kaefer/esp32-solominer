@@ -25,7 +25,7 @@ esp_err_t i2c_master_init(const i2c_master_config_t *config)
 
     ESP_LOGI(TAG, "Initializing I2C master on port %d", config->i2c_port);
     ESP_LOGI(TAG, "SDA: GPIO%d, SCL: GPIO%d", config->sda_io_num, config->scl_io_num);
-    ESP_LOGI(TAG, "Clock speed: %lu Hz", config->clk_speed);
+    ESP_LOGI(TAG, "Clock speed: %u Hz", (unsigned int)config->clk_speed);
 
     // Configure I2C parameters
     i2c_config_t i2c_conf = {
@@ -73,19 +73,19 @@ esp_err_t i2c_master_deinit(i2c_port_t i2c_port)
 bool i2c_master_validate_voltage(uint32_t voltage_mv)
 {
     if (voltage_mv < DISPLAY_VOLTAGE_MIN_MV) {
-        ESP_LOGW(TAG, "Voltage %lu mV is below minimum %d mV", 
-                 voltage_mv, DISPLAY_VOLTAGE_MIN_MV);
+        ESP_LOGW(TAG, "Voltage %u mV is below minimum %d mV", 
+                 (unsigned int)voltage_mv, DISPLAY_VOLTAGE_MIN_MV);
         return false;
     }
     
     if (voltage_mv > DISPLAY_VOLTAGE_MAX_MV) {
-        ESP_LOGW(TAG, "Voltage %lu mV is above maximum %d mV", 
-                 voltage_mv, DISPLAY_VOLTAGE_MAX_MV);
+        ESP_LOGW(TAG, "Voltage %u mV is above maximum %d mV", 
+                 (unsigned int)voltage_mv, DISPLAY_VOLTAGE_MAX_MV);
         return false;
     }
 
-    ESP_LOGI(TAG, "Voltage %lu mV is within valid range (%d-%d mV)", 
-             voltage_mv, DISPLAY_VOLTAGE_MIN_MV, DISPLAY_VOLTAGE_MAX_MV);
+    ESP_LOGI(TAG, "Voltage %u mV is within valid range (%d-%d mV)", 
+             (unsigned int)voltage_mv, DISPLAY_VOLTAGE_MIN_MV, DISPLAY_VOLTAGE_MAX_MV);
     return true;
 }
 
