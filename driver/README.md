@@ -4,7 +4,7 @@ This directory contains the modular I2C master driver implementation for OLED di
 
 ## Overview
 
-The I2C master driver provides a clean, modular interface for initializing and communicating with 128x64 LED display modules. It supports both SSD1306 (original) and SSD1315 (improved variant) driver ICs.
+The I2C master driver provides a clean, modular interface for initializing and communicating with 128x64 OLED display modules. It supports both SSD1306 (original) and SSD1315 (improved variant) driver ICs.
 
 ## Hardware Specifications
 

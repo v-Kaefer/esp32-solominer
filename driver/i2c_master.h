@@ -2,7 +2,7 @@
  * @file i2c_master.h
  * @brief I2C Master Driver for SSD1306/SSD1315 OLED Displays
  * 
- * This driver provides modular I2C master configuration for 128x64 LED display modules
+ * This driver provides modular I2C master configuration for 128x64 OLED display modules
  * with IIC interface. Supports both SSD1306 and SSD1315 driver ICs.
  * 
  * Hardware Specifications:

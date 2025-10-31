@@ -140,13 +140,10 @@ void i2c_master_init_ssd1306_ex(SSD1306_t *dev, i2c_port_t i2c_port, int width, 
     ssd1306_write_command(dev, 0x40);
     
     // Charge pump setting - critical for proper operation
-    // SSD1315 has improved charge pump compared to SSD1306
+    // Both SSD1306 and SSD1315 use 0x14 to enable charge pump
+    // (SSD1315 has improved internal implementation but uses same command)
     ssd1306_write_command(dev, 0x8D);
-    if (driver_ic == DISPLAY_DRIVER_SSD1315) {
-        ssd1306_write_command(dev, 0x14);  // Enable charge pump (SSD1315 optimized)
-    } else {
-        ssd1306_write_command(dev, 0x14);  // Enable charge pump (SSD1306)
-    }
+    ssd1306_write_command(dev, 0x14);  // Enable charge pump
     
     // Memory addressing mode
     ssd1306_write_command(dev, OLED_CMD_SET_MEMORY_ADDR_MODE);
