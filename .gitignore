@@ -5,3 +5,10 @@ sdkconfig.old
 .embold
 .qodo
 .vscode
+main/config.h
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
