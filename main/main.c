@@ -283,8 +283,8 @@ void app_main(void)
     ESP_ERROR_CHECK(i2c_master_init(&i2c_config));
     
     // Validate voltage range for display
-    uint32_t operating_voltage_mv = 3300;  // 3.3V typical for ESP32
-    if (!i2c_master_validate_voltage(operating_voltage_mv)) {
+    // Using typical ESP32 operating voltage (3.3V)
+    if (!i2c_master_validate_voltage(DISPLAY_VOLTAGE_TYPICAL_MV)) {
         ESP_LOGW(TAG, "Operating voltage outside recommended range");
     }
     

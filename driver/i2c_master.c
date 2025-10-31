@@ -74,18 +74,18 @@ bool i2c_master_validate_voltage(uint32_t voltage_mv)
 {
     if (voltage_mv < DISPLAY_VOLTAGE_MIN_MV) {
         ESP_LOGW(TAG, "Voltage %u mV is below minimum %u mV", 
-                 voltage_mv, (unsigned int)DISPLAY_VOLTAGE_MIN_MV);
+                 voltage_mv, DISPLAY_VOLTAGE_MIN_MV);
         return false;
     }
     
     if (voltage_mv > DISPLAY_VOLTAGE_MAX_MV) {
         ESP_LOGW(TAG, "Voltage %u mV is above maximum %u mV", 
-                 voltage_mv, (unsigned int)DISPLAY_VOLTAGE_MAX_MV);
+                 voltage_mv, DISPLAY_VOLTAGE_MAX_MV);
         return false;
     }
 
     ESP_LOGI(TAG, "Voltage %u mV is within valid range (%u-%u mV)", 
-             voltage_mv, (unsigned int)DISPLAY_VOLTAGE_MIN_MV, (unsigned int)DISPLAY_VOLTAGE_MAX_MV);
+             voltage_mv, DISPLAY_VOLTAGE_MIN_MV, DISPLAY_VOLTAGE_MAX_MV);
     return true;
 }
 

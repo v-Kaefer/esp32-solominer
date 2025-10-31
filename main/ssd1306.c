@@ -18,6 +18,14 @@ static const char *TAG = "SSD1306";
 #define OLED_CMD_SET_COLUMN_RANGE    0x21
 #define OLED_CMD_SET_PAGE_RANGE      0x22
 
+// Display contrast settings
+#define SSD1306_CONTRAST_HIGH        0xCF  // High contrast for SSD1306
+#define SSD1315_CONTRAST_MAX         0xFF  // Maximum contrast for SSD1315
+
+// Pre-charge period settings
+#define SSD1306_PRECHARGE_DEFAULT    0xF1  // Default pre-charge for SSD1306
+#define SSD1315_PRECHARGE_OPTIMIZED  0x22  // Optimized pre-charge for SSD1315
+
 // 5x8 font (simple ASCII)
 static const uint8_t font5x8[][5] = {
     {0x00, 0x00, 0x00, 0x00, 0x00}, // space
@@ -168,17 +176,17 @@ void i2c_master_init_ssd1306_ex(SSD1306_t *dev, i2c_port_t i2c_port, int width, 
     // Contrast control - high brightness setting
     ssd1306_write_command(dev, OLED_CMD_SET_CONTRAST);
     if (driver_ic == DISPLAY_DRIVER_SSD1315) {
-        ssd1306_write_command(dev, 0xFF);  // Maximum contrast for SSD1315
+        ssd1306_write_command(dev, SSD1315_CONTRAST_MAX);
     } else {
-        ssd1306_write_command(dev, 0xCF);  // High contrast for SSD1306
+        ssd1306_write_command(dev, SSD1306_CONTRAST_HIGH);
     }
     
     // Pre-charge period - optimized for ultra-low power
     ssd1306_write_command(dev, 0xD9);
     if (driver_ic == DISPLAY_DRIVER_SSD1315) {
-        ssd1306_write_command(dev, 0x22);  // SSD1315 optimized timing
+        ssd1306_write_command(dev, SSD1315_PRECHARGE_OPTIMIZED);
     } else {
-        ssd1306_write_command(dev, 0xF1);  // SSD1306 default
+        ssd1306_write_command(dev, SSD1306_PRECHARGE_DEFAULT);
     }
     
     // VCOMH deselect level
