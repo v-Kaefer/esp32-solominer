@@ -26,7 +26,9 @@ jobs:
       id: changed-files
       run: |
         # Get the list of changed C files
-        git diff --name-only origin/main...HEAD | grep -E '\.(c|h)$' > changed_files.txt || echo "No C files changed"
+        # Use GITHUB_BASE_REF to support different base branches
+        BASE_BRANCH="${GITHUB_BASE_REF:-main}"
+        git diff --name-only "origin/${BASE_BRANCH}...HEAD" | grep -E '\.(c|h)$' > changed_files.txt || echo "No C files changed"
         cat changed_files.txt
 
     - name: Check for new functions
@@ -48,8 +50,9 @@ jobs:
         for file in $(cat changed_files.txt); do
           if [ -f "$file" ]; then
             echo "#### $file" >> test_report.md
-            # Find function definitions (simple heuristic)
-            grep -n "^[a-zA-Z_][a-zA-Z0-9_]*.*(.*)" "$file" | head -20 >> test_report.md || echo "No functions found" >> test_report.md
+            # Find function definitions - look for return type, function name, and opening paren
+            # This is a simple heuristic that may not catch all functions
+            grep -nE '^[a-zA-Z_][a-zA-Z0-9_]*[[:space:]]+[a-zA-Z_][a-zA-Z0-9_]*[[:space:]]*\(' "$file" | head -20 >> test_report.md || echo "No obvious functions found" >> test_report.md
             echo "" >> test_report.md
           fi
         done
