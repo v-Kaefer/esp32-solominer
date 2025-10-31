@@ -55,6 +55,55 @@ CI/CD builds automatically skip WiFi functionality since `config.h` is not commi
    idf.py flash monitor
    ```
 
+## Testing
+
+This project includes unit tests for core functionality using the ESP-IDF Unity test framework.
+
+### Running Tests
+
+The test suite is located in the `test/` directory. To build and run tests:
+
+```bash
+# Build the test application
+idf.py set-target esp32s3
+idf.py build
+
+# Flash and monitor (if you have hardware)
+idf.py flash monitor
+```
+
+### Test Coverage
+
+We use an automated feature detector to ensure all public functions have unit tests. To check test coverage:
+
+```bash
+python3 scripts/detect_features.py .
+```
+
+This script will:
+- Analyze all C source files in the `main/` directory
+- Identify functions that lack unit tests
+- Generate test stubs for missing tests
+
+### Adding Tests
+
+When adding new functions:
+1. Write the function in the appropriate source file
+2. Add corresponding test functions in the `test/` directory
+3. Run the feature detector to verify coverage
+4. Test names should follow the pattern: `test_<function_name>`
+
+Example test structure:
+```c
+void test_my_function(void)
+{
+    // 1. Setup test data
+    // 2. Call the function
+    // 3. Assert expected results
+    TEST_ASSERT_EQUAL(expected, actual);
+}
+```
+
 ## CI/CD
 
 This project uses GitHub Actions for continuous integration. See [CI_CD_SETUP.md](CI_CD_SETUP.md) for details.
@@ -64,6 +113,7 @@ All pull requests must pass:
 - 🔍 Static code analysis
 - 🔒 Security scanning
 - 📝 Code quality checks
+- 🧪 Test coverage verification
 
 ## Contributing
 
