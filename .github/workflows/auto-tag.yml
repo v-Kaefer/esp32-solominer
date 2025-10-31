@@ -109,10 +109,14 @@ jobs:
             echo "Creating patch version tag: $TAG_NAME"
             
             # Cleanup old patch versions at every tenth version (10, 20, 30, etc.)
-            if [[ $((NEXT_PATCH % 10)) -eq 0 ]]; then
+            if [[ $((NEXT_PATCH % 10)) -eq 0 ]] && [[ $NEXT_PATCH -ge 10 ]]; then
               echo "Reached milestone version $TAG_NAME, cleaning up old patch versions"
               # Delete versions from (NEXT_PATCH - 9) to (NEXT_PATCH - 1)
-              for ((i = NEXT_PATCH - 9; i < NEXT_PATCH; i++)); do
+              START_DELETE=$((NEXT_PATCH - 9))
+              if [[ $START_DELETE -lt 1 ]]; then
+                START_DELETE=1
+              fi
+              for ((i = START_DELETE; i < NEXT_PATCH; i++)); do
                 OLD_TAG="v0.0.${i}"
                 if git rev-parse "$OLD_TAG" >/dev/null 2>&1; then
                   echo "  Deleting old tag: $OLD_TAG"
