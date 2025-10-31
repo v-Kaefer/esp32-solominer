@@ -1,0 +1,98 @@
+name: Test Coverage Check
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'main/*.c'
+      - 'main/*.h'
+
+jobs:
+  check-tests:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Get changed files
+      id: changed-files
+      run: |
+        # Get the list of changed C files
+        git diff --name-only origin/main...HEAD | grep -E '\.(c|h)$' > changed_files.txt || echo "No C files changed"
+        cat changed_files.txt
+    
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+    
+    - name: Run Feature Detector
+      id: feature-detector
+      run: |
+        # Run the feature detector script
+        python3 scripts/detect_features.py . > feature_report.txt 2>&1 || true
+        
+        # Create markdown report
+        echo "## 🔍 Test Coverage Analysis" > test_report.md
+        echo "" >> test_report.md
+        
+        if [ ! -s changed_files.txt ]; then
+          echo "No C/C++ files were changed in this PR." >> test_report.md
+        else
+          echo "### Changed Files:" >> test_report.md
+          echo '```' >> test_report.md
+          cat changed_files.txt >> test_report.md
+          echo '```' >> test_report.md
+          echo "" >> test_report.md
+        fi
+        
+        # Add feature detector output
+        echo "### Feature Implementation Analysis:" >> test_report.md
+        echo '```' >> test_report.md
+        cat feature_report.txt >> test_report.md
+        echo '```' >> test_report.md
+        echo "" >> test_report.md
+        
+        # Check if there are untested functions
+        if grep -q "Functions without tests: 0" feature_report.txt; then
+          echo "### ✅ Test Coverage Status" >> test_report.md
+          echo "All public functions have unit tests!" >> test_report.md
+        else
+          echo "### ⚠️ Test Coverage Status" >> test_report.md
+          echo "Some functions do not have unit tests. Please add tests for the functions listed above." >> test_report.md
+          echo "" >> test_report.md
+          echo "**How to add tests:**" >> test_report.md
+          echo "1. Add test functions to the appropriate test file in the \`test/\` directory" >> test_report.md
+          echo "2. Use the generated test stubs as a starting point" >> test_report.md
+          echo "3. Run \`python3 scripts/detect_features.py .\` locally to verify coverage" >> test_report.md
+        fi
+    
+    - name: Upload test report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-coverage-report
+        path: test_report.md
+        retention-days: 30
+    
+    - name: Comment on PR
+      if: always()
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          if (fs.existsSync('test_report.md')) {
+            const report = fs.readFileSync('test_report.md', 'utf8');
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: report
+            });
+          }

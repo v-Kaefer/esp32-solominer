@@ -1,0 +1,60 @@
+name: Documentation Check
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  check-docs:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Check for README updates
+      run: |
+        # Check if code changes were made without updating documentation
+        CODE_CHANGED=$(git diff --name-only origin/main...HEAD | grep -E '\.(c|h)$' | wc -l)
+        DOCS_CHANGED=$(git diff --name-only origin/main...HEAD | grep -E '\.(md|txt|rst)$' | wc -l)
+        
+        if [ "$CODE_CHANGED" -gt 0 ] && [ "$DOCS_CHANGED" -eq 0 ]; then
+          echo "⚠️ Warning: Code was modified but documentation was not updated."
+          echo "Consider updating README.md if the changes affect user-facing functionality."
+        else
+          echo "✅ Documentation check passed"
+        fi
+    
+    - name: Check README completeness
+      run: |
+        echo "Checking README.md completeness..."
+        
+        # Check for essential sections
+        SECTIONS=("Configuration" "Build" "Usage" "License")
+        for section in "${SECTIONS[@]}"; do
+          if grep -qi "$section" README.md; then
+            echo "✅ Found section: $section"
+          else
+            echo "⚠️ Missing section: $section"
+          fi
+        done
+    
+    - name: Validate code comments
+      run: |
+        echo "Checking for commented code and documentation..."
+        
+        # Count comment density in C files
+        for file in main/*.c; do
+          if [ -f "$file" ]; then
+            TOTAL_LINES=$(wc -l < "$file")
+            COMMENT_LINES=$(grep -c "^[[:space:]]*//" "$file" || true)
+            if [ "$TOTAL_LINES" -gt 0 ]; then
+              COMMENT_RATIO=$((COMMENT_LINES * 100 / TOTAL_LINES))
+              echo "$file: $COMMENT_RATIO% comments"
+            fi
+          fi
+        done
