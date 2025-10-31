@@ -2,22 +2,11 @@
 
 This directory contains the CI/CD workflows for the ESP32 Solo Miner project.
 
-## Workflow Architecture
-
-The repository uses a modular, reusable workflow architecture to reduce duplication and ensure consistency.
-
 ## Workflows Overview
 
-### Reusable Workflows (Modular Components)
-
-These workflows are designed to be called by other workflows:
-
-#### `reusable-build.yml`
-**Purpose:** Builds the ESP32 project using ESP-IDF
-**Inputs:**
-- `esp_idf_version`: ESP-IDF version (default: v5.1.2)
-- `target`: ESP32 target (default: esp32s3)
-- `artifact_retention_days`: Artifact retention period (default: 30)
+### 1. Build Workflow (`build.yml`)
+**Triggers:** Push to main/release, Pull requests to main/release, workflow_call
+**Purpose:** Compiles the ESP32-S3 project using ESP-IDF v5.1.2
 
 **What it does:**
 - Sets up ESP-IDF environment
@@ -25,10 +14,11 @@ These workflows are designed to be called by other workflows:
 - Builds the project for ESP32-S3 target
 - Archives build artifacts (binaries, ELF, map files)
 
-#### `reusable-static-analysis.yml`
-**Purpose:** Runs cppcheck static analysis on C code
-**Inputs:**
-- `artifact_retention_days`: Artifact retention period (default: 30)
+**Reusable:** Can be called by other workflows with configurable ESP-IDF version, target, and artifact retention.
+
+### 2. Static Analysis (`static-analysis.yml`)
+**Triggers:** Push to main/release, Pull requests to main/release, workflow_call
+**Purpose:** Runs cppcheck to detect potential code issues
 
 **What it does:**
 - Analyzes C source code for common bugs
@@ -36,10 +26,21 @@ These workflows are designed to be called by other workflows:
 - Identifies unused functions and variables
 - Generates detailed analysis report
 
-#### `reusable-code-quality.yml`
-**Purpose:** Performs comprehensive code quality checks
-**Inputs:**
-- `GITHUB_TOKEN`: Required secret for creating issues
+**Reusable:** Can be called by other workflows with configurable artifact retention.
+
+### 3. CodeQL Security Analysis (`codeql.yml`)
+**Triggers:** Push to main, Pull requests to main, Weekly schedule (Mondays)
+**Purpose:** Scans for security vulnerabilities
+
+**What it does:**
+- Performs security-focused code analysis
+- Detects common vulnerabilities (buffer overflows, SQL injection patterns, etc.)
+- Runs security and quality queries
+- Creates security alerts in GitHub Security tab
+
+### 4. Code Quality Checks (`code-quality.yml`)
+**Triggers:** Push to main/release, Pull requests to main/release, workflow_call
+**Purpose:** Enforces code quality standards
 
 **What it does:**
 - Checks for trailing whitespace
@@ -48,12 +49,13 @@ These workflows are designed to be called by other workflows:
 - Identifies unsafe C functions (gets, strcpy, etc.)
 - Finds TODO/FIXME comments
 - Checks for overly long functions (>200 lines)
-- **Automatically creates GitHub issues on PR failures with @github/copilot assistance**
+- Automatically creates GitHub issues on PR failures with assistance prompts
 
-#### `reusable-test-coverage.yml`
-**Purpose:** Analyzes test coverage for changed files
-**Inputs:**
-- `artifact_retention_days`: Artifact retention period (default: 30)
+**Reusable:** Can be called by other workflows (requires GITHUB_TOKEN secret).
+
+### 5. Test Coverage Check (`test-coverage.yml`)
+**Triggers:** Pull requests that modify C/H files, workflow_call
+**Purpose:** Monitors test coverage and suggests tests for new features
 
 **What it does:**
 - Identifies changed C/H files
@@ -61,45 +63,12 @@ These workflows are designed to be called by other workflows:
 - Checks if test directory exists
 - Generates test coverage report
 - Comments on PR with recommendations
+- Suggests unit tests for mining functions, initialization routines
 
-### Caller Workflows (Orchestrators)
+**Reusable:** Can be called by other workflows with configurable artifact retention.
 
-These workflows coordinate multiple checks by calling reusable workflows:
-
-#### `pr-checks.yml`
-**Triggers:** Pull requests to main/release branches
-**Purpose:** Orchestrates all checks for pull requests
-
-**Jobs:**
-- Build verification (calls `reusable-build.yml`)
-- Static code analysis (calls `reusable-static-analysis.yml`)
-- Code quality checks (calls `reusable-code-quality.yml`)
-- Test coverage analysis (calls `reusable-test-coverage.yml`)
-
-#### `main-release-checks.yml`
-**Triggers:** Push to main/release branches
-**Purpose:** Runs essential checks on direct pushes
-
-**Jobs:**
-- Build verification (calls `reusable-build.yml`)
-- Static code analysis (calls `reusable-static-analysis.yml`)
-
-### Independent Workflows
-
-These workflows have specific requirements and run independently:
-
-#### `codeql.yml`
-**Triggers:** Push to main, Pull requests to main, Weekly schedule (Mondays)
-**Purpose:** GitHub CodeQL security analysis with custom build process
-
-**What it does:**
-- Performs security-focused code analysis
-- Detects common vulnerabilities (buffer overflows, injection patterns, etc.)
-- Runs security and quality queries
-- Creates security alerts in GitHub Security tab
-
-#### `documentation.yml`
-**Triggers:** Pull requests to main/develop
+### 6. Documentation Check (`documentation.yml`)
+**Triggers:** Pull requests to main
 **Purpose:** Ensures documentation stays current
 
 **What it does:**
@@ -107,62 +76,6 @@ These workflows have specific requirements and run independently:
 - Validates README.md completeness (Configuration, Build, Usage, License sections)
 - Analyzes comment density in source files
 - Provides warnings if docs are missing
-
-#### `auto-tag.yml`
-**Triggers:** Push to main/release/develop branches, Manual workflow dispatch
-**Purpose:** Automatically creates version tags for firmware releases
-
-**What it does:**
-- Reads VERSION file
-- Creates tags with appropriate suffix based on branch (alpha/beta/release)
-- Prevents duplicate tags
-- Supports manual version tagging
-
-#### `labeler.yml`
-**Triggers:** PR opened, synchronized, reopened
-**Purpose:** Automatically labels PRs based on changed files and branch patterns
-
-**What it does:**
-- Labels PRs based on file paths changed
-- Syncs label colors from configuration
-- Provides PR summary
-
-### Deprecated Workflows
-
-These workflows are kept for backward compatibility and only trigger on `develop` branch or manual dispatch:
-
-- `build.yml` - Replaced by `pr-checks.yml` and `main-release-checks.yml`
-- `static-analysis.yml` - Replaced by `pr-checks.yml` and `main-release-checks.yml`
-- `code-quality.yml` - Replaced by `pr-checks.yml`
-- `test-coverage.yml` - Replaced by `pr-checks.yml`
-
-## Benefits of the Modular Architecture
-
-✅ **Consistency**: Same checks run regardless of branch or trigger
-✅ **Maintainability**: Update once, apply everywhere
-✅ **Flexibility**: Easy to add/remove checks or customize per branch
-✅ **Reusability**: Workflows can be called from different contexts
-✅ **Reduced Duplication**: Single source of truth for each check
-
-## Usage Examples
-
-### Calling a Reusable Workflow
-
-```yaml
-jobs:
-  build:
-    uses: ./.github/workflows/reusable-build.yml
-    with:
-      esp_idf_version: v5.1.2
-      target: esp32s3
-      artifact_retention_days: 30
-```
-
-### Adding a New Check to PRs
-
-1. Create a reusable workflow in `.github/workflows/reusable-<name>.yml`
-2. Add a job to `pr-checks.yml` that calls your reusable workflow
-3. Test with a PR to ensure it works correctly
 
 ## Best Practices
 
@@ -201,6 +114,29 @@ Workflows generate artifacts that can be downloaded from the Actions tab:
 - **build-artifacts**: Compiled binaries and map files (30 days retention)
 - **cppcheck-report**: Static analysis results (30 days retention)
 - **test-coverage-report**: Test suggestions (30 days retention)
+
+## Reusable Workflows
+
+Several workflows support `workflow_call` trigger, allowing them to be called by other workflows for consistency and reusability:
+
+- **build.yml** - Accepts parameters for ESP-IDF version, target, and artifact retention
+- **static-analysis.yml** - Accepts parameter for artifact retention
+- **code-quality.yml** - Requires GITHUB_TOKEN secret
+- **test-coverage.yml** - Accepts parameter for artifact retention
+
+### Example: Calling a workflow
+
+```yaml
+jobs:
+  build:
+    uses: ./.github/workflows/build.yml
+    with:
+      esp_idf_version: v5.1.2
+      target: esp32s3
+      artifact_retention_days: 30
+```
+
+This design allows workflows like `pr-checks.yml` and `main-release-checks.yml` to orchestrate multiple checks while keeping workflow definitions DRY (Don't Repeat Yourself).
 
 ## Troubleshooting
 

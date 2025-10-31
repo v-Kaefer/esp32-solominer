@@ -1,31 +1,33 @@
-name: Static Code Analysis (Deprecated)
-
-# This workflow has been replaced by:
-# - pr-checks.yml (for pull requests)
-# - main-release-checks.yml (for main/release branches)
-# 
-# This file is kept for backward compatibility and will be removed in a future update.
+name: Static Code Analysis
 
 on:
   push:
-    branches: [ develop ]  # Only trigger on develop branch now
-  workflow_dispatch:  # Allow manual triggers
+    branches: [ main, release ]
+  pull_request:
+    branches: [ main, release ]
+  workflow_call:
+    inputs:
+      artifact_retention_days:
+        description: 'Number of days to retain artifacts'
+        required: false
+        type: number
+        default: 30
 
 jobs:
   cppcheck:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-    
+
     - name: Install cppcheck
       run: |
         sudo apt-get update
         sudo apt-get install -y cppcheck
-    
+
     - name: Run cppcheck
       run: |
         cppcheck --enable=all \
@@ -40,11 +42,11 @@ jobs:
           main/*.c \
           2>&1 | tee cppcheck-report.txt
       continue-on-error: true
-    
+
     - name: Upload cppcheck report
       uses: actions/upload-artifact@v4
       if: always()
       with:
         name: cppcheck-report
         path: cppcheck-report.txt
-        retention-days: 30
+        retention-days: ${{ inputs.artifact_retention_days || 30 }}

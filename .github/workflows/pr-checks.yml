@@ -12,7 +12,7 @@ permissions:
 jobs:
   build:
     name: Build ESP32 Project
-    uses: ./.github/workflows/reusable-build.yml
+    uses: ./.github/workflows/build.yml
     with:
       esp_idf_version: v5.1.2
       target: esp32s3
@@ -20,18 +20,18 @@ jobs:
 
   static-analysis:
     name: Static Code Analysis
-    uses: ./.github/workflows/reusable-static-analysis.yml
+    uses: ./.github/workflows/static-analysis.yml
     with:
       artifact_retention_days: 30
 
   code-quality:
     name: Code Quality Checks
-    uses: ./.github/workflows/reusable-code-quality.yml
+    uses: ./.github/workflows/code-quality.yml
     secrets:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   test-coverage:
     name: Test Coverage Check
-    uses: ./.github/workflows/reusable-test-coverage.yml
+    uses: ./.github/workflows/test-coverage.yml
     with:
       artifact_retention_days: 30
