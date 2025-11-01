@@ -237,32 +237,28 @@ void mining_task(void *pvParameters)
         // Check difficulty
         uint32_t difficulty = count_leading_zeros(hash);
         
-        // Update shared statistics with mutex protection
+        // Check difficulty and update shared statistics with mutex protection
         bool need_log = false;
-        if (difficulty > best_difficulty) {
-            if (xSemaphoreTake(stats_mutex, pdMS_TO_TICKS(10)) == pdTRUE) {
-                if (difficulty > best_difficulty) {
-                    best_difficulty = difficulty;
-                    need_log = true;
-                }
-                xSemaphoreGive(stats_mutex);
+        if (xSemaphoreTake(stats_mutex, pdMS_TO_TICKS(10)) == pdTRUE) {
+            if (difficulty > best_difficulty) {
+                best_difficulty = difficulty;
+                need_log = true;
             }
-            
-            if (need_log) {
-                ESP_LOGI(TAG, "New best difficulty: %lu leading zeros", difficulty);
-                ESP_LOGI(TAG, "Hash: %02x%02x%02x%02x...%02x%02x%02x%02x",
-                         hash[31], hash[30], hash[29], hash[28],
-                         hash[3], hash[2], hash[1], hash[0]);
-            }
+            xSemaphoreGive(stats_mutex);
+        }
+        
+        if (need_log) {
+            ESP_LOGI(TAG, "New best difficulty: %lu leading zeros", difficulty);
+            ESP_LOGI(TAG, "Hash: %02x%02x%02x%02x...%02x%02x%02x%02x",
+                     hash[31], hash[30], hash[29], hash[28],
+                     hash[3], hash[2], hash[1], hash[0]);
         }
         
         // Check if we found a valid block (need ~70 zeros for real Bitcoin)
         if (difficulty >= 70) {
             ESP_LOGI(TAG, "!!! BLOCK FOUND !!!");
-            if (xSemaphoreTake(stats_mutex, pdMS_TO_TICKS(100)) == pdTRUE) {
-                // Display task will show block found message
-                xSemaphoreGive(stats_mutex);
-            }
+            // In a future enhancement, this could signal the display task
+            // to show a special "BLOCK FOUND" message
             vTaskDelay(pdMS_TO_TICKS(10000));
         }
         
