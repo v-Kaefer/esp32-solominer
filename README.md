@@ -23,9 +23,11 @@ This is a learning project focused on:
 **New to ESP32 Bitcoin mining? Start here:**
 
 - **[Quick Start Guide](MINING_QUICKSTART.md)** - Get mining in 5 minutes
+- **[Dual-Core Architecture](DUAL_CORE_ARCHITECTURE.md)** - Understanding the modular dual-core design
 - **[Comprehensive Mining Strategies](ESP32_MINING_STRATEGIES.md)** - Deep dive into mining approaches, hardware optimization, and cooling requirements
 
 These guides cover:
+- Dual-core modular architecture (Core 0: Mining, Core 1: I/O)
 - Multiple mining approaches (NerdMiner, NMMiner, LeafMiner)
 - Hardware specifications and cooling requirements
 - Performance benchmarks and expectations

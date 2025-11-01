@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/semphr.h"
 #include "esp_system.h"
 #include "esp_wifi.h"
 #include "esp_event.h"
@@ -29,11 +30,15 @@
 
 static const char *TAG = "BTC_MINER";
 
-// Mining statistics
+// Mining statistics - shared between cores
 static uint64_t total_hashes = 0;
 static uint32_t best_difficulty = 0;
 static uint32_t nonce = 0;
 static uint8_t block_header[80];
+static float current_hashrate = 0.0f;
+
+// Mutex for protecting shared statistics
+static SemaphoreHandle_t stats_mutex = NULL;
 
 // OLED device handle
 static SSD1306_t dev;
@@ -165,10 +170,25 @@ void init_block_header(void)
     ESP_LOGI(TAG, "Block header initialized");
 }
 
-// Update OLED display
-void update_display(float hashrate)
+// Update OLED display (called from display task on Core 1)
+void update_display(void)
 {
     char line[32];
+    uint64_t local_total_hashes;
+    uint32_t local_best_difficulty;
+    uint32_t local_nonce;
+    float local_hashrate;
+    
+    // Read shared statistics with mutex protection
+    if (xSemaphoreTake(stats_mutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+        local_total_hashes = total_hashes;
+        local_best_difficulty = best_difficulty;
+        local_nonce = nonce;
+        local_hashrate = current_hashrate;
+        xSemaphoreGive(stats_mutex);
+    } else {
+        return; // Skip update if mutex not available
+    }
     
     ssd1306_clear_screen(&dev, false);
     ssd1306_contrast(&dev, 0xff);
@@ -178,29 +198,30 @@ void update_display(float hashrate)
     ssd1306_display_text(&dev, 1, "------------------", 18, false);
     
     // Hashrate
-    snprintf(line, sizeof(line), "Rate: %.1f H/s", hashrate);
+    snprintf(line, sizeof(line), "Rate: %.1f H/s", local_hashrate);
     ssd1306_display_text(&dev, 2, line, strlen(line), false);
     
     // Total hashes
-    snprintf(line, sizeof(line), "Total: %llu", total_hashes);
+    snprintf(line, sizeof(line), "Total: %llu", local_total_hashes);
     ssd1306_display_text(&dev, 3, line, strlen(line), false);
     
     // Best difficulty
-    snprintf(line, sizeof(line), "Best: %lu zeros", best_difficulty);
+    snprintf(line, sizeof(line), "Best: %lu zeros", local_best_difficulty);
     ssd1306_display_text(&dev, 4, line, strlen(line), false);
     
     // Current nonce
-    snprintf(line, sizeof(line), "Nonce: %lu", nonce);
+    snprintf(line, sizeof(line), "Nonce: %lu", local_nonce);
     ssd1306_display_text(&dev, 5, line, strlen(line), false);
 }
 
-// Mining task
+// Mining task (runs on Core 0 - dedicated to SHA-256 compute)
 void mining_task(void *pvParameters)
 {
     uint8_t hash[32];
     uint64_t hash_count = 0;
     int64_t start_time = esp_timer_get_time();
-    int64_t last_update = start_time;
+    int64_t last_stats_update = start_time;
+    uint32_t local_nonce = 0;
     
     ESP_LOGI(TAG, "Mining task started on core %d", xPortGetCoreID());
     
@@ -211,16 +232,23 @@ void mining_task(void *pvParameters)
         double_sha256(block_header, 80, hash);
         
         hash_count++;
-        total_hashes++;
+        local_nonce++;
         
         // Check difficulty
         uint32_t difficulty = count_leading_zeros(hash);
         
-        if (difficulty > best_difficulty) {
-            best_difficulty = difficulty;
-            ESP_LOGI(TAG, "New best difficulty: %lu leading zeros", best_difficulty);
-            
-            // Print hash
+        // Check difficulty and update shared statistics with mutex protection
+        bool need_log = false;
+        if (xSemaphoreTake(stats_mutex, pdMS_TO_TICKS(10)) == pdTRUE) {
+            if (difficulty > best_difficulty) {
+                best_difficulty = difficulty;
+                need_log = true;
+            }
+            xSemaphoreGive(stats_mutex);
+        }
+        
+        if (need_log) {
+            ESP_LOGI(TAG, "New best difficulty: %lu leading zeros", difficulty);
             ESP_LOGI(TAG, "Hash: %02x%02x%02x%02x...%02x%02x%02x%02x",
                      hash[31], hash[30], hash[29], hash[28],
                      hash[3], hash[2], hash[1], hash[0]);
@@ -229,24 +257,29 @@ void mining_task(void *pvParameters)
         // Check if we found a valid block (need ~70 zeros for real Bitcoin)
         if (difficulty >= 70) {
             ESP_LOGI(TAG, "!!! BLOCK FOUND !!!");
-            ssd1306_clear_screen(&dev, false);
-            ssd1306_display_text(&dev, 2, "*** BLOCK FOUND ***", 19, false);
+            // In a future enhancement, this could signal the display task
+            // to show a special "BLOCK FOUND" message
             vTaskDelay(pdMS_TO_TICKS(10000));
         }
         
-        // Increment nonce
-        nonce++;
-        memcpy(&block_header[76], &nonce, 4);
+        // Increment nonce in block header
+        memcpy(&block_header[76], &local_nonce, 4);
         
-        // Update display every 2 seconds
+        // Update shared statistics periodically (every 2 seconds)
         int64_t current_time = esp_timer_get_time();
-        if ((current_time - last_update) >= 2000000) {
+        if ((current_time - last_stats_update) >= 2000000) {
             float elapsed_sec = (current_time - start_time) / 1000000.0f;
             float hashrate = hash_count / (elapsed_sec > 0 ? elapsed_sec : 1);
             
-            update_display(hashrate);
+            // Update shared statistics with mutex protection
+            if (xSemaphoreTake(stats_mutex, pdMS_TO_TICKS(10)) == pdTRUE) {
+                total_hashes += hash_count;
+                nonce = local_nonce;
+                current_hashrate = hashrate;
+                xSemaphoreGive(stats_mutex);
+            }
             
-            last_update = current_time;
+            last_stats_update = current_time;
             hash_count = 0;
             start_time = current_time;
             
@@ -255,15 +288,48 @@ void mining_task(void *pvParameters)
         }
         
         // Small delay to prevent watchdog timeout
-        if (nonce % 1000 == 0) {
+        if (local_nonce % 1000 == 0) {
             vTaskDelay(1);
         }
+    }
+}
+
+// Display and I/O task (runs on Core 1 - handles WiFi, display, MQTT, etc.)
+void display_io_task(void *pvParameters)
+{
+    ESP_LOGI(TAG, "Display/IO task started on core %d", xPortGetCoreID());
+    
+    // Display initialization message was already shown in app_main
+    vTaskDelay(pdMS_TO_TICKS(3000));
+    
+    while(1) {
+        // Update display every 2 seconds
+        update_display();
+        
+        // In the future, this task can handle:
+        // - WiFi status monitoring
+        // - MQTT message publishing
+        // - Web server requests
+        // - Temperature monitoring
+        // - Fan control (if PWM fan is connected)
+        // - Network time sync
+        // - Remote control/configuration
+        
+        vTaskDelay(pdMS_TO_TICKS(2000));
     }
 }
 
 void app_main(void)
 {
     ESP_LOGI(TAG, "ESP32-S3 Bitcoin Miner Starting...");
+    ESP_LOGI(TAG, "Dual-Core Architecture: Core 0=Mining, Core 1=I/O");
+    
+    // Create mutex for protecting shared statistics
+    stats_mutex = xSemaphoreCreateMutex();
+    if (stats_mutex == NULL) {
+        ESP_LOGE(TAG, "Failed to create statistics mutex!");
+        return;
+    }
     
     // Initialize NVS
     esp_err_t ret = nvs_flash_init();
@@ -301,30 +367,47 @@ void app_main(void)
     ssd1306_contrast(&dev, 0xff);
     
     ssd1306_display_text(&dev, 0, "ESP32-S3 Miner", 14, false);
-    ssd1306_display_text(&dev, 2, "Initializing...", 15, false);
+    ssd1306_display_text(&dev, 1, "Dual-Core Mode", 14, false);
+    ssd1306_display_text(&dev, 2, "Core0: Mining", 13, false);
+    ssd1306_display_text(&dev, 3, "Core1: I/O", 10, false);
     
 #ifdef WIFI_SSID
-    // Initialize WiFi
+    // Initialize WiFi on Core 1 (I/O core)
     ESP_LOGI(TAG, "Initializing WiFi...");
     wifi_init();
     
-    ssd1306_display_text(&dev, 3, "WiFi Connecting...", 18, false);
-    vTaskDelay(pdMS_TO_TICKS(5000));
+    ssd1306_display_text(&dev, 4, "WiFi Connecting...", 18, false);
+    vTaskDelay(pdMS_TO_TICKS(3000));
 #endif
     
-    ssd1306_display_text(&dev, 4, "Starting mining!", 16, false);
+    ssd1306_display_text(&dev, 5, "Starting tasks!", 15, false);
     vTaskDelay(pdMS_TO_TICKS(2000));
     
-    // Create mining task on Core 1 for maximum performance
+    // Create mining task on Core 0 for maximum SHA-256 performance
+    // Core 0 is dedicated to compute-intensive mining operations
     xTaskCreatePinnedToCore(
         mining_task,
         "mining_task",
         8192,
         NULL,
-        5,
+        5,  // High priority for mining
         NULL,
-        1  // Pin to Core 1
+        0   // Pin to Core 0 (primary mining core)
     );
     
-    ESP_LOGI(TAG, "Mining task created");
+    // Create display/IO task on Core 1 for WiFi, display, MQTT, etc.
+    // Core 1 handles all I/O operations without interfering with mining
+    xTaskCreatePinnedToCore(
+        display_io_task,
+        "display_io_task",
+        4096,
+        NULL,
+        3,  // Lower priority than mining
+        NULL,
+        1   // Pin to Core 1 (I/O core)
+    );
+    
+    ESP_LOGI(TAG, "Dual-core tasks created successfully");
+    ESP_LOGI(TAG, "Core 0: Mining (SHA-256 compute)");
+    ESP_LOGI(TAG, "Core 1: Display/WiFi/I/O operations");
 }
