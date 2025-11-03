@@ -125,21 +125,32 @@ void double_sha256(const uint8_t* data, size_t len, uint8_t* hash)
 }
 
 // Count leading zero bits in hash
+// Optimized using hardware CLZ (Count Leading Zeros) instruction via __builtin_clz
 uint32_t count_leading_zeros(const uint8_t* hash)
 {
     uint32_t zeros = 0;
-    for(int i = 31; i >= 0; i--) {
-        if(hash[i] == 0) {
-            zeros += 8;
+    
+    // Process hash in 32-bit words for efficiency (using CLZ instruction)
+    // Hash is stored in little-endian byte order, but we need to count from MSB
+    for(int i = 7; i >= 0; i--) {
+        // Construct a 32-bit word from 4 bytes (big-endian order for bit counting)
+        int base = i * 4;
+        uint32_t word = ((uint32_t)hash[base + 3] << 24) |
+                        ((uint32_t)hash[base + 2] << 16) |
+                        ((uint32_t)hash[base + 1] << 8) |
+                        ((uint32_t)hash[base + 0]);
+        
+        if(word == 0) {
+            // All 32 bits are zero, continue to next word
+            zeros += 32;
         } else {
-            uint8_t byte = hash[i];
-            while((byte & 0x80) == 0) {
-                zeros++;
-                byte <<= 1;
-            }
+            // Use hardware CLZ instruction (compiles to 'nsau' on Xtensa)
+            // __builtin_clz counts leading zeros in a 32-bit word
+            zeros += __builtin_clz(word);
             break;
         }
     }
+    
     return zeros;
 }
 
