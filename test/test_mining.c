@@ -19,9 +19,8 @@ void setUp(void)
     memset(test_data, 0, sizeof(test_data));
     
     // Initialize SHA256 context for tests
-    mbedtls_md_type_t md_type = MBEDTLS_MD_SHA256;
     mbedtls_md_init(&sha_ctx);
-    mbedtls_md_setup(&sha_ctx, mbedtls_md_info_from_type(md_type), 0);
+    mbedtls_md_setup(&sha_ctx, mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), 0);
 }
 
 void tearDown(void)

@@ -219,7 +219,13 @@ void mining_task(void *pvParameters)
     mbedtls_md_context_t sha_ctx;
     mbedtls_md_type_t md_type = MBEDTLS_MD_SHA256;
     mbedtls_md_init(&sha_ctx);
-    mbedtls_md_setup(&sha_ctx, mbedtls_md_info_from_type(md_type), 0);
+    int ret = mbedtls_md_setup(&sha_ctx, mbedtls_md_info_from_type(md_type), 0);
+    if (ret != 0) {
+        ESP_LOGE(TAG, "Failed to setup SHA256 context: %d", ret);
+        vTaskDelete(NULL); // Delete this task on error
+        return;
+    }
+    // Note: mbedtls_md_free() not called because this task runs indefinitely
     
     ESP_LOGI(TAG, "Mining task started on core %d", xPortGetCoreID());
     
