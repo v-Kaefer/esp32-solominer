@@ -101,47 +101,50 @@ void wifi_init(void)
 
 #endif // WIFI_SSID
 
-// Double SHA256 hash
+// Double SHA256 hash using pre-allocated context
 // Uses ESP32-S3 hardware SHA acceleration when CONFIG_MBEDTLS_HARDWARE_SHA is enabled
-// Hardware acceleration provides significant speedup over software implementation
-void double_sha256(const uint8_t* data, size_t len, uint8_t* hash)
+// Context must be initialized before calling this function
+void double_sha256(mbedtls_md_context_t* ctx, const uint8_t* data, size_t len, uint8_t* hash)
 {
-    mbedtls_md_context_t ctx;
-    mbedtls_md_type_t md_type = MBEDTLS_MD_SHA256;
-    
-    mbedtls_md_init(&ctx);
-    mbedtls_md_setup(&ctx, mbedtls_md_info_from_type(md_type), 0);
-    
     // First SHA256 - uses hardware accelerator when enabled
     uint8_t temp[32];
-    mbedtls_md_starts(&ctx);
-    mbedtls_md_update(&ctx, data, len);
-    mbedtls_md_finish(&ctx, temp);
+    mbedtls_md_starts(ctx);
+    mbedtls_md_update(ctx, data, len);
+    mbedtls_md_finish(ctx, temp);
     
     // Second SHA256 - uses hardware accelerator when enabled
-    mbedtls_md_starts(&ctx);
-    mbedtls_md_update(&ctx, temp, 32);
-    mbedtls_md_finish(&ctx, hash);
-    
-    mbedtls_md_free(&ctx);
+    mbedtls_md_starts(ctx);
+    mbedtls_md_update(ctx, temp, 32);
+    mbedtls_md_finish(ctx, hash);
 }
 
 // Count leading zero bits in hash
+// Optimized using hardware CLZ (Count Leading Zeros) instruction via __builtin_clz
 uint32_t count_leading_zeros(const uint8_t* hash)
 {
     uint32_t zeros = 0;
-    for(int i = 31; i >= 0; i--) {
-        if(hash[i] == 0) {
-            zeros += 8;
+    
+    // Process hash in 32-bit words for efficiency (using CLZ instruction)
+    // Hash is stored in little-endian byte order, but we need to count from MSB
+    for(int i = 7; i >= 0; i--) {
+        // Construct a 32-bit word from 4 bytes (big-endian order for bit counting)
+        int base = i * 4;
+        uint32_t word = ((uint32_t)hash[base + 3] << 24) |
+                        ((uint32_t)hash[base + 2] << 16) |
+                        ((uint32_t)hash[base + 1] << 8) |
+                        ((uint32_t)hash[base + 0]);
+        
+        if(word == 0) {
+            // All 32 bits are zero, continue to next word
+            zeros += 32;
         } else {
-            uint8_t byte = hash[i];
-            while((byte & 0x80) == 0) {
-                zeros++;
-                byte <<= 1;
-            }
+            // Use hardware CLZ instruction (compiles to 'nsau' on Xtensa)
+            // __builtin_clz counts leading zeros in a 32-bit word
+            zeros += __builtin_clz(word);
             break;
         }
     }
+    
     return zeros;
 }
 
@@ -193,7 +196,6 @@ void update_display(void)
     }
     
     ssd1306_clear_screen(&dev, false);
-    ssd1306_contrast(&dev, 0xff);
     
     // Title
     ssd1306_display_text(&dev, 0, "ESP32-S3 BTC Miner", 18, false);
@@ -225,13 +227,24 @@ void mining_task(void *pvParameters)
     int64_t last_stats_update = start_time;
     uint32_t local_nonce = 0;
     
+    // Initialize SHA256 context once to avoid repeated allocations
+    mbedtls_md_context_t sha_ctx;
+    mbedtls_md_type_t md_type = MBEDTLS_MD_SHA256;
+    mbedtls_md_init(&sha_ctx);
+    int ret = mbedtls_md_setup(&sha_ctx, mbedtls_md_info_from_type(md_type), 0);
+    if (ret != 0) {
+        ESP_LOGE(TAG, "Failed to setup SHA256 context: %d", ret);
+        vTaskDelete(NULL);
+        return;
+    }
+    
     ESP_LOGI(TAG, "Mining task started on core %d", xPortGetCoreID());
     
     init_block_header();
     
     while(1) {
         // Mine with current nonce
-        double_sha256(block_header, 80, hash);
+        double_sha256(&sha_ctx, block_header, 80, hash);
         
         hash_count++;
         local_nonce++;
