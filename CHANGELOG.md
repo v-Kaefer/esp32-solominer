@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **ESP32-S3 Hardware SHA Acceleration**: Enabled hardware SHA accelerator for 2-5x mining performance improvement
+- Comprehensive hardware SHA acceleration documentation (`HARDWARE_SHA_ACCELERATION.md`)
+- Hardware SHA status logging at startup
+- Performance optimization via `CONFIG_COMPILER_OPTIMIZATION_PERF`
 - Modular I2C driver with SSD1306/SSD1315 display support
 - Comprehensive unit test framework using ESP-IDF Unity
 - Automated test coverage detection scripts
@@ -19,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Display initialization: supports both SSD1306 and SSD1315 driver ICs
 - Pin configuration: Fixed I2C pins (SDA=GPIO15, SCL=GPIO9)
 - WiFi configuration: now uses `config.h` pattern for security
+- SHA-256 hashing: now uses hardware acceleration by default (transparent via mbedTLS)
 
 ### Fixed
 - I2C driver initialization issues
