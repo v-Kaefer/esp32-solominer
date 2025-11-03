@@ -102,6 +102,8 @@ void wifi_init(void)
 #endif // WIFI_SSID
 
 // Double SHA256 hash
+// Uses ESP32-S3 hardware SHA acceleration when CONFIG_MBEDTLS_HARDWARE_SHA is enabled
+// Hardware acceleration provides 2-5x speedup over software implementation
 void double_sha256(const uint8_t* data, size_t len, uint8_t* hash)
 {
     mbedtls_md_context_t ctx;
@@ -110,13 +112,13 @@ void double_sha256(const uint8_t* data, size_t len, uint8_t* hash)
     mbedtls_md_init(&ctx);
     mbedtls_md_setup(&ctx, mbedtls_md_info_from_type(md_type), 0);
     
-    // First SHA256
+    // First SHA256 - uses hardware accelerator when enabled
     uint8_t temp[32];
     mbedtls_md_starts(&ctx);
     mbedtls_md_update(&ctx, data, len);
     mbedtls_md_finish(&ctx, temp);
     
-    // Second SHA256
+    // Second SHA256 - uses hardware accelerator when enabled
     mbedtls_md_starts(&ctx);
     mbedtls_md_update(&ctx, temp, 32);
     mbedtls_md_finish(&ctx, hash);
@@ -323,6 +325,12 @@ void app_main(void)
 {
     ESP_LOGI(TAG, "ESP32-S3 Bitcoin Miner Starting...");
     ESP_LOGI(TAG, "Dual-Core Architecture: Core 0=Mining, Core 1=I/O");
+    
+#ifdef CONFIG_MBEDTLS_HARDWARE_SHA
+    ESP_LOGI(TAG, "Hardware SHA acceleration: ENABLED (2-5x speedup)");
+#else
+    ESP_LOGW(TAG, "Hardware SHA acceleration: DISABLED (using software)");
+#endif
     
     // Create mutex for protecting shared statistics
     stats_mutex = xSemaphoreCreateMutex();

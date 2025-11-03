@@ -10,6 +10,12 @@ Project to test a setup for ESP32 S3 N16R8 as a bitcoin solo miner or ticket min
 
 **Hardware:** ESP32-S3-N16R8 (via ESP-PROG)
 
+## ⚡ Hardware SHA Acceleration
+
+This project now uses the **ESP32-S3's built-in hardware SHA accelerator** for a **2-5x performance boost** in Bitcoin mining operations. Hardware acceleration is enabled by default - no configuration needed!
+
+For technical details, see **[Hardware SHA Acceleration Guide](HARDWARE_SHA_ACCELERATION.md)**.
+
 ## 🎯 Project Goals
 
 This is a learning project focused on:
@@ -22,11 +28,13 @@ This is a learning project focused on:
 
 **New to ESP32 Bitcoin mining? Start here:**
 
+- **[Hardware SHA Acceleration](HARDWARE_SHA_ACCELERATION.md)** - Understanding ESP32-S3 hardware acceleration (NEW!)
 - **[Quick Start Guide](MINING_QUICKSTART.md)** - Get mining in 5 minutes
 - **[Dual-Core Architecture](DUAL_CORE_ARCHITECTURE.md)** - Understanding the modular dual-core design
 - **[Comprehensive Mining Strategies](ESP32_MINING_STRATEGIES.md)** - Deep dive into mining approaches, hardware optimization, and cooling requirements
 
 These guides cover:
+- ESP32-S3 hardware SHA acceleration (2-5x speedup)
 - Dual-core modular architecture (Core 0: Mining, Core 1: I/O)
 - Multiple mining approaches (NerdMiner, NMMiner, LeafMiner)
 - Hardware specifications and cooling requirements

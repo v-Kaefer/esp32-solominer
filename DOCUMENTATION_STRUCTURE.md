@@ -8,6 +8,7 @@ These files are for users and contributors:
 
 - **[README.md](README.md)** - Project overview, getting started, build instructions
 - **[CHANGELOG.md](CHANGELOG.md)** - User-facing changelog with notable changes
+- **[HARDWARE_SHA_ACCELERATION.md](HARDWARE_SHA_ACCELERATION.md)** - ESP32-S3 hardware SHA acceleration guide
 - **[MINING_QUICKSTART.md](MINING_QUICKSTART.md)** - Quick start guide for ESP32 mining (5 minutes)
 - **[DUAL_CORE_ARCHITECTURE.md](DUAL_CORE_ARCHITECTURE.md)** - Dual-core modular architecture design and implementation
 - **[ESP32_MINING_STRATEGIES.md](ESP32_MINING_STRATEGIES.md)** - Comprehensive mining strategies, hardware specs, and optimization
@@ -62,6 +63,7 @@ Detailed technical implementation notes archived for reference:
 | Need | Look Here |
 |------|-----------|
 | **Get started** | [README.md](README.md) |
+| **Hardware SHA accel** | [HARDWARE_SHA_ACCELERATION.md](HARDWARE_SHA_ACCELERATION.md) |
 | **Quick mining setup** | [MINING_QUICKSTART.md](MINING_QUICKSTART.md) |
 | **Architecture design** | [DUAL_CORE_ARCHITECTURE.md](DUAL_CORE_ARCHITECTURE.md) |
 | **Detailed mining info** | [ESP32_MINING_STRATEGIES.md](ESP32_MINING_STRATEGIES.md) |
