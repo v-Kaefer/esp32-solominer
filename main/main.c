@@ -103,7 +103,7 @@ void wifi_init(void)
 
 // Double SHA256 hash
 // Uses ESP32-S3 hardware SHA acceleration when CONFIG_MBEDTLS_HARDWARE_SHA is enabled
-// Hardware acceleration provides 2-5x speedup over software implementation
+// Hardware acceleration provides significant speedup over software implementation
 void double_sha256(const uint8_t* data, size_t len, uint8_t* hash)
 {
     mbedtls_md_context_t ctx;
@@ -327,7 +327,7 @@ void app_main(void)
     ESP_LOGI(TAG, "Dual-Core Architecture: Core 0=Mining, Core 1=I/O");
     
 #ifdef CONFIG_MBEDTLS_HARDWARE_SHA
-    ESP_LOGI(TAG, "Hardware SHA acceleration: ENABLED (2-5x speedup)");
+    ESP_LOGI(TAG, "Hardware SHA acceleration: ENABLED");
 #else
     ESP_LOGW(TAG, "Hardware SHA acceleration: DISABLED (using software)");
 #endif

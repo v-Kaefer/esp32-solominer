@@ -28,10 +28,10 @@ CONFIG_COMPILER_OPTIMIZATION_PERF=y
 When the device boots, check the serial monitor output:
 
 ```
-I (xxx) BTC_MINER: Hardware SHA acceleration: ENABLED (2-5x speedup)
+I (xxx) BTC_MINER: Hardware SHA acceleration: ENABLED
 ```
 
-If you see this message, hardware acceleration is active.
+If you see this message, hardware acceleration is active. The actual performance improvement (typically 2-5x) depends on clock speed, core count, and thermal conditions.
 
 ## Technical Details
 
@@ -62,6 +62,8 @@ void double_sha256(const uint8_t* data, size_t len, uint8_t* hash)
     mbedtls_md_free(&ctx);
 }
 ```
+
+**Note**: The actual implementation includes proper error handling for mbedTLS operations. The above is simplified for clarity. In production code, check return values from `mbedtls_md_*` functions.
 
 When `CONFIG_MBEDTLS_HARDWARE_SHA=y` is set, mbedTLS automatically routes SHA-256 operations through the ESP32-S3's hardware SHA peripheral instead of software implementation.
 
