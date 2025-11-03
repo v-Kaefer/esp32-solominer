@@ -2,16 +2,16 @@ name: Build ESP32 Project
 
 on:
   push:
-    branches: [ main, release, develop ]
+    branches: [ main, release ]
   pull_request:
-    branches: [ main, release, develop ]
+    branches: [ main, release ]
   workflow_call:
     inputs:
       esp_idf_version:
         description: 'ESP-IDF version to use'
         required: false
         type: string
-        default: 'v5.1.2'
+        default: 'v5.4'
       target:
         description: 'ESP32 target'
         required: false
