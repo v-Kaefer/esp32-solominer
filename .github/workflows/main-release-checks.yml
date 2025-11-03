@@ -21,6 +21,7 @@ jobs:
 
   static-analysis:
     name: Static Code Analysis
+    needs: build
     uses: ./.github/workflows/static-analysis.yml
     with:
       artifact_retention_days: 30
