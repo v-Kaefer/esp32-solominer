@@ -11,3 +11,9 @@ test/sdkconfig.old
 main/config.h
 benchmark_report.md
 *.benchmark
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python

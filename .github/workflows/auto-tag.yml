@@ -1,0 +1,143 @@
+name: Auto Tag Firmware Releases
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - release
+    paths:
+      - 'main/**'
+      - 'CMakeLists.txt'
+  pull_request:
+    branches:
+      - main
+      - develop
+      - release
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'main/**'
+      - 'CMakeLists.txt'
+
+permissions:
+  contents: write
+
+jobs:
+  auto-tag:
+    name: Auto-tag firmware release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+      - name: Configure git
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+
+      - name: Auto-create semantic version tag
+        run: |
+          # Determine version based on branch
+          # For PRs, use the target branch; for pushes, use the current branch
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            BRANCH_NAME="${{ github.base_ref }}"
+          else
+            BRANCH_NAME="${{ github.ref_name }}"
+          fi
+          
+          if [[ "$BRANCH_NAME" == "release" ]]; then
+            # Priority 1: Release branch - major version (1.0.0, 2.0.0, 3.0.0, ...)
+            echo "Branch is release, finding next major version"
+            
+            # Find the highest major version (X.0.0)
+            HIGHEST_MAJOR=0
+            while IFS= read -r tag; do
+              # Match tags like v1.0.0, v2.0.0, etc. (exactly X.0.0 format)
+              if [[ "$tag" =~ ^v([0-9]+)\.0\.0$ ]]; then
+                MAJOR=$(( 10#${BASH_REMATCH[1]} ))  # Force base-10 to handle leading zeros
+                if [[ "$MAJOR" -gt "$HIGHEST_MAJOR" ]]; then
+                  HIGHEST_MAJOR=$MAJOR
+                fi
+              fi
+            done < <(git tag -l "v[0-9]*.0.0" 2>/dev/null)
+            
+            NEXT_MAJOR=$((HIGHEST_MAJOR + 1))
+            TAG_NAME="v${NEXT_MAJOR}.0.0"
+            echo "Creating major version tag: $TAG_NAME"
+            
+          elif [[ "$BRANCH_NAME" == "main" ]]; then
+            # Priority 2: Main branch - minor version (0.1.0, 0.2.0, 0.3.0, ...)
+            echo "Branch is main, finding next minor version"
+            
+            # Find the highest minor version (0.Y.0)
+            HIGHEST_MINOR=0
+            while IFS= read -r tag; do
+              # Match tags like v0.1.0, v0.2.0, etc. (exactly 0.Y.0 format)
+              if [[ "$tag" =~ ^v0\.([0-9]+)\.0$ ]]; then
+                MINOR=$(( 10#${BASH_REMATCH[1]} ))  # Force base-10 to handle leading zeros
+                if [[ "$MINOR" -gt "$HIGHEST_MINOR" ]]; then
+                  HIGHEST_MINOR=$MINOR
+                fi
+              fi
+            done < <(git tag -l "v0.[0-9]*.0" 2>/dev/null)
+            
+            NEXT_MINOR=$((HIGHEST_MINOR + 1))
+            TAG_NAME="v0.${NEXT_MINOR}.0"
+            echo "Creating minor version tag: $TAG_NAME"
+            
+          elif [[ "$BRANCH_NAME" == "develop" ]]; then
+            # Priority 3: Develop branch - patch version (0.0.1, 0.0.2, 0.0.3, ...)
+            echo "Branch is develop, finding next patch version"
+            
+            # Find the highest patch version (0.0.Z)
+            HIGHEST_PATCH=0
+            while IFS= read -r tag; do
+              # Match tags like v0.0.1, v0.0.2, etc. (exactly 0.0.Z format)
+              if [[ "$tag" =~ ^v0\.0\.([0-9]+)$ ]]; then
+                PATCH=$(( 10#${BASH_REMATCH[1]} ))  # Force base-10 to handle leading zeros
+                if [[ "$PATCH" -gt "$HIGHEST_PATCH" ]]; then
+                  HIGHEST_PATCH=$PATCH
+                fi
+              fi
+            done < <(git tag -l "v0.0.[0-9]*" 2>/dev/null)
+            
+            NEXT_PATCH=$((HIGHEST_PATCH + 1))
+            TAG_NAME="v0.0.${NEXT_PATCH}"
+            echo "Creating patch version tag: $TAG_NAME"
+            
+            # Cleanup old patch versions at every tenth version (10, 20, 30, etc.)
+            if [[ $((NEXT_PATCH % 10)) -eq 0 ]] && [[ $NEXT_PATCH -ge 10 ]]; then
+              echo "Reached milestone version $TAG_NAME, cleaning up old patch versions"
+              # Delete versions from (NEXT_PATCH - 9) to (NEXT_PATCH - 1)
+              START_DELETE=$((NEXT_PATCH - 9))
+              if [[ $START_DELETE -lt 1 ]]; then
+                START_DELETE=1
+              fi
+              for ((i = START_DELETE; i < NEXT_PATCH; i++)); do
+                OLD_TAG="v0.0.${i}"
+                if git rev-parse "$OLD_TAG" >/dev/null 2>&1; then
+                  echo "  Deleting old tag: $OLD_TAG"
+                  git tag -d "$OLD_TAG" 2>/dev/null || true
+                  git push origin ":refs/tags/$OLD_TAG" 2>/dev/null || true
+                fi
+              done
+            fi
+            
+          else
+            echo "Branch $BRANCH_NAME does not match tagging criteria, skipping"
+            exit 0
+          fi
+          
+          # Check if tag already exists
+          if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
+            echo "Tag $TAG_NAME already exists, skipping"
+            exit 0
+          fi
+          
+          echo "Creating tag $TAG_NAME"
+          git tag -a "$TAG_NAME" -m "ESP32 Solo Miner firmware $TAG_NAME"
+          git push origin "$TAG_NAME"
+          echo "Tag $TAG_NAME created and pushed successfully"

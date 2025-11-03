@@ -1,0 +1,92 @@
+# PR Labeler Configuration
+# Automatically labels pull requests based on files changed and branch names
+# Reference: https://github.com/actions/labeler
+
+# Versioning and releases
+'🏷️ version':
+  - changed-files:
+    - any-glob-to-any-file: ['VERSION', '.github/scripts/version.sh', '.github/workflows/release.yml', '.github/workflows/auto-tag.yml']
+
+# Version types based on target branch
+'🔬 alpha':
+  - base-branch: ['develop']
+
+'🧪 beta':
+  - base-branch: ['main']
+
+'🎯 release':
+  - base-branch: ['release']
+
+# Documentation
+'📝 documentation':
+  - changed-files:
+    - any-glob-to-any-file: ['**/*.md', 'docs/**/*', '**/*.mdx']
+
+# Workflows and CI/CD
+'🔄 workflow':
+  - changed-files:
+    - any-glob-to-any-file: ['.github/workflows/**/*', '.github/actions/**/*', '.github/labeler.yml']
+
+# Configuration files
+'⚙️ configuration':
+  - changed-files:
+    - any-glob-to-any-file: ['**/*.yaml', '**/*.yml', '**/*.toml', '**/*.config.*', '**/sdkconfig*', '.github/labels.json']
+
+# Hardware and GPIO
+'⚙️ hardware':
+  - changed-files:
+    - any-glob-to-any-file: ['**/gpio*', '**/ssd1306*', '**/i2c*', '**/spi*', '**/hardware*']
+
+# Bitcoin Mining
+'⛏️ mining':
+  - changed-files:
+    - any-glob-to-any-file: ['**/mining*', '**/miner*', '**/btc*', '**/bitcoin*', '**/hash*']
+
+# Display/OLED
+'🖥️ display':
+  - changed-files:
+    - any-glob-to-any-file: ['**/ssd1306*', '**/oled*', '**/display*', '**/screen*', '**/ui*']
+
+# Networking
+'📡 networking':
+  - changed-files:
+    - any-glob-to-any-file: ['**/wifi*', '**/network*', '**/http*', '**/tcp*', '**/lwip*']
+
+# Firmware
+'🔧 firmware':
+  - changed-files:
+    - any-glob-to-any-file: ['main/**/*', '**/CMakeLists.txt', '**/sdkconfig*', '**/Kconfig*']
+
+# Tests (if any test files are added in the future)
+'🧪 tests':
+  - changed-files:
+    - any-glob-to-any-file: ['**/*test*', '**/*spec*', '**/tests/**/*']
+
+# Branch-based labels (matching the repository's branching strategy)
+'✨ new feature':
+  - head-branch: ['^feature/', '^feat/']
+
+'✨ feature':
+  - head-branch: ['^feat/', '^feature/']
+
+'🐛 bug':
+  - head-branch: ['^fix/', '^bugfix/']
+
+'🚑 hotfix':
+  - head-branch: ['^hotfix/']
+
+'♻️ refactor':
+  - head-branch: ['^refactor/']
+
+'⚡ performance':
+  - head-branch: ['^perf/', '^performance/']
+
+'🔒 security':
+  - head-branch: ['^security/', '^sec/']
+  - changed-files:
+    - any-glob-to-any-file: ['**/*security*', '**/*auth*', '**/*encrypt*']
+
+'🤖 copilot':
+  - head-branch: ['^copilot/']
+  - changed-files:
+    - any-glob-to-any-file: ['.github/agents/**/*', '**/.copilot*', '**/copilot.yml', '**/copilot.yaml', '**/*copilot*']

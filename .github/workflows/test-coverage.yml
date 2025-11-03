@@ -1,0 +1,170 @@
+name: Test Coverage Check
+
+on:
+  pull_request:
+    branches: [ main, release, develop ]
+    paths:
+      - 'main/*.c'
+      - 'main/*.h'
+  workflow_call:
+    inputs:
+      artifact_retention_days:
+        description: 'Number of days to retain artifacts'
+        required: false
+        type: number
+        default: 30
+
+jobs:
+  check-tests:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Get changed files
+      id: changed-files
+      run: |
+        # Get the list of changed C files
+        # Use GITHUB_BASE_REF to support different base branches
+        BASE_BRANCH="${GITHUB_BASE_REF:-main}"
+        git diff --name-only "origin/${BASE_BRANCH}...HEAD" | grep -E '\.(c|h)$' > changed_files.txt || echo "No C files changed"
+        cat changed_files.txt
+    
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+    
+    - name: Run Feature Detector
+      id: feature-detector
+      run: |
+        # Run the feature detector script
+        python3 scripts/detect_features.py . > feature_report.txt 2>&1 || true
+        
+        # Create markdown report
+        echo "## 🔍 Test Coverage Analysis" > test_report.md
+        echo "" >> test_report.md
+
+        if [ ! -s changed_files.txt ]; then
+          echo "No C/C++ files were changed in this PR." >> test_report.md
+          exit 0
+        fi
+
+        echo "### Changed Files:" >> test_report.md
+        cat changed_files.txt >> test_report.md
+        echo "" >> test_report.md
+
+        # Look for new functions in changed files
+        echo "### Functions Found in Changed Files:" >> test_report.md
+        for file in $(cat changed_files.txt); do
+          if [ -f "$file" ]; then
+            echo "#### $file" >> test_report.md
+            # Find function definitions - look for return type, function name, and opening paren
+            # Note: This is a simplified heuristic for informational purposes only
+            # It may miss: pointer returns, const qualifiers, static functions, etc.
+            # For precise analysis, use a proper C parser
+            grep -nE '^[a-zA-Z_][a-zA-Z0-9_]*[[:space:]]+[a-zA-Z_][a-zA-Z0-9_]*[[:space:]]*\(' "$file" | head -20 >> test_report.md || echo "No obvious functions found" >> test_report.md
+            echo "" >> test_report.md
+          fi
+        done
+
+        # Check if test directory exists
+        echo "### Test Coverage Status:" >> test_report.md
+        if [ -d "test" ] || [ -d "tests" ] || [ -d "main/test" ]; then
+          echo "✅ Test directory exists" >> test_report.md
+        else
+          echo "⚠️ No test directory found. Consider adding unit tests for new features." >> test_report.md
+          echo "" >> test_report.md
+          echo "**Recommendation:** Create a test directory and add unit tests for:" >> test_report.md
+          echo "- Mining functions (double_sha256, count_leading_zeros)" >> test_report.md
+          echo "- Block header initialization" >> test_report.md
+          echo "- WiFi and I2C initialization functions" >> test_report.md
+        fi
+
+    - name: Upload test report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-coverage-report
+        path: test_report.md
+        retention-days: ${{ inputs.artifact_retention_days || 30 }}
+
+    - name: Comment on PR
+      if: always()
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          if (fs.existsSync('test_report.md')) {
+            const report = fs.readFileSync('test_report.md', 'utf8');
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: report
+            });
+          }
+      run: |
+        echo "## Test Coverage Analysis" > test_report.md
+        echo "" >> test_report.md
+        
+        if [ ! -s changed_files.txt ]; then
+          echo "No C/C++ files were changed in this PR." >> test_report.md
+        else
+          echo "### Changed Files:" >> test_report.md
+          echo '```' >> test_report.md
+          cat changed_files.txt >> test_report.md
+          echo '```' >> test_report.md
+          echo "" >> test_report.md
+        fi
+        
+        # Add feature detector output
+        echo "### Feature Implementation Analysis:" >> test_report.md
+        echo '```' >> test_report.md
+        cat feature_report.txt >> test_report.md
+        echo '```' >> test_report.md
+        echo "" >> test_report.md
+        
+        # Check if there are untested functions
+        if grep -q "Functions without tests: 0" feature_report.txt; then
+          echo "### ✅ Test Coverage Status" >> test_report.md
+          echo "All public functions have unit tests!" >> test_report.md
+        else
+          echo "### ⚠️ Test Coverage Status" >> test_report.md
+          echo "Some functions do not have unit tests. Please add tests for the functions listed above." >> test_report.md
+          echo "" >> test_report.md
+          echo "**How to add tests:**" >> test_report.md
+          echo "1. Add test functions to the appropriate test file in the \`test/\` directory" >> test_report.md
+          echo "2. Use the generated test stubs as a starting point" >> test_report.md
+          echo "3. Run \`python3 scripts/detect_features.py .\` locally to verify coverage" >> test_report.md
+        fi
+    
+    - name: Upload test report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-coverage-report
+        path: test_report.md
+        retention-days: 30
+    
+    - name: Comment on PR
+      if: always()
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          if (fs.existsSync('test_report.md')) {
+            const report = fs.readFileSync('test_report.md', 'utf8');
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: report
+            });
+          }
