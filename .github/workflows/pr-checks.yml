@@ -8,6 +8,8 @@ permissions:
   contents: read
   pull-requests: write
   issues: write
+  security-events: write
+  actions: read
 
 jobs:
   build:
@@ -20,18 +22,30 @@ jobs:
 
   static-analysis:
     name: Static Code Analysis
+    needs: build
     uses: ./.github/workflows/static-analysis.yml
     with:
       artifact_retention_days: 30
 
   code-quality:
     name: Code Quality Checks
+    needs: build
     uses: ./.github/workflows/code-quality.yml
     secrets:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  codeql:
+    name: CodeQL Security Analysis
+    needs: build
+    uses: ./.github/workflows/codeql.yml
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
   test-coverage:
     name: Test Coverage Check
+    needs: build
     uses: ./.github/workflows/test-coverage.yml
     with:
       artifact_retention_days: 30
