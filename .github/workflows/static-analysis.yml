@@ -1,6 +1,10 @@
 name: Static Code Analysis
 
 on:
+  push:
+    branches: [ main, release, develop ]
+  pull_request:
+    branches: [ main, release, develop ]
   workflow_call:
     inputs:
       artifact_retention_days:

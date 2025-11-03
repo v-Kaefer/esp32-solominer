@@ -1,6 +1,10 @@
 name: Code Quality Checks
 
 on:
+  push:
+    branches: [ main, release, develop ]
+  pull_request:
+    branches: [ main, release, develop ]
   workflow_call:
     secrets:
       GITHUB_TOKEN:
