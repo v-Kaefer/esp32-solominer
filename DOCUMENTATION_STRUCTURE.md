@@ -9,6 +9,7 @@ These files are for users and contributors:
 - **[README.md](README.md)** - Project overview, getting started, build instructions
 - **[CHANGELOG.md](CHANGELOG.md)** - User-facing changelog with notable changes
 - **[MINING_QUICKSTART.md](MINING_QUICKSTART.md)** - Quick start guide for ESP32 mining (5 minutes)
+- **[DUAL_CORE_ARCHITECTURE.md](DUAL_CORE_ARCHITECTURE.md)** - Dual-core modular architecture design and implementation
 - **[ESP32_MINING_STRATEGIES.md](ESP32_MINING_STRATEGIES.md)** - Comprehensive mining strategies, hardware specs, and optimization
 - **[CI_CD_SETUP.md](CI_CD_SETUP.md)** - CI/CD workflows and contribution guidelines
 
@@ -62,6 +63,7 @@ Detailed technical implementation notes archived for reference:
 |------|-----------|
 | **Get started** | [README.md](README.md) |
 | **Quick mining setup** | [MINING_QUICKSTART.md](MINING_QUICKSTART.md) |
+| **Architecture design** | [DUAL_CORE_ARCHITECTURE.md](DUAL_CORE_ARCHITECTURE.md) |
 | **Detailed mining info** | [ESP32_MINING_STRATEGIES.md](ESP32_MINING_STRATEGIES.md) |
 | **Contribute code** | [CI_CD_SETUP.md](CI_CD_SETUP.md) |
 | **See what changed** | [CHANGELOG.md](CHANGELOG.md) |
@@ -70,4 +72,4 @@ Detailed technical implementation notes archived for reference:
 
 ---
 
-**Last Updated:** 2025-10-31
+**Last Updated:** 2025-11-01
