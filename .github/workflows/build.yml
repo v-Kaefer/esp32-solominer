@@ -1,10 +1,6 @@
 name: Build ESP32 Project
 
 on:
-  push:
-    branches: [ main, release ]
-  pull_request:
-    branches: [ main, release ]
   workflow_call:
     inputs:
       esp_idf_version:
