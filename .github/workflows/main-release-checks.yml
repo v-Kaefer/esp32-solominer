@@ -7,6 +7,8 @@ on:
 permissions:
   contents: read
   issues: write
+  security-events: write
+  actions: read
 
 jobs:
   build:
@@ -19,6 +21,16 @@ jobs:
 
   static-analysis:
     name: Static Code Analysis
+    needs: build
     uses: ./.github/workflows/static-analysis.yml
     with:
       artifact_retention_days: 30
+
+  codeql:
+    name: CodeQL Security Analysis
+    needs: build
+    uses: ./.github/workflows/codeql.yml
+    permissions:
+      actions: read
+      contents: read
+      security-events: write

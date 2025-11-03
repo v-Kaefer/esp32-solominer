@@ -11,7 +11,7 @@ on:
         description: 'ESP-IDF version to use'
         required: false
         type: string
-        default: 'v5.1.2'
+        default: 'v5.4'
       target:
         description: 'ESP32 target'
         required: false
@@ -51,4 +51,5 @@ jobs:
           build/*.bin
           build/*.elf
           build/*.map
+          build/compile_commands.json
         retention-days: ${{ inputs.artifact_retention_days || 30 }}
