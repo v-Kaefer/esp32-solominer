@@ -3,6 +3,8 @@ idf_component_register(
          "test_mining.c"
          "test_ssd1306.c"
          "test_ssd1306_auto.c"
-    INCLUDE_DIRS "."
+         "test_i2c_master.c"
+         "../driver/i2c_master.c"
+    INCLUDE_DIRS "." ".."
     REQUIRES unity main
 )
