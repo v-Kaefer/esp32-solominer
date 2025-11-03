@@ -2,14 +2,14 @@
 
 ## Overview
 
-This project uses the ESP32-S3's built-in hardware SHA accelerator via mbedTLS with hardware acceleration enabled for Bitcoin mining performance.
+This project uses the ESP32-S3's built-in hardware SHA accelerator via mbedTLS's direct SHA256 API for Bitcoin mining performance.
 
 ## Implementation Approach
 
-This implementation uses mbedTLS with ESP-IDF's hardware SHA acceleration:
+This implementation uses mbedTLS SHA256 API which automatically leverages ESP-IDF's hardware SHA acceleration in ESP-IDF v5.4:
 
-1. **mbedTLS with Hardware SHA**: Uses `CONFIG_MBEDTLS_HARDWARE_SHA=y` to enable hardware acceleration
-2. **Pre-allocated Context**: Context initialized once at mining task startup to eliminate malloc/free overhead
+1. **mbedTLS SHA256 Direct API**: Uses `mbedtls_sha256()` which automatically uses hardware acceleration
+2. **Simple Function Calls**: No context management needed - straightforward API
 3. **Hardware CLZ Instruction**: Uses `__builtin_clz` for faster leading zero counting
 
 ### Performance Impact
@@ -34,6 +34,7 @@ When the device boots, check the serial monitor output:
 
 ```
 I (xxx) BTC_MINER: Hardware SHA acceleration: ENABLED
+I (xxx) BTC_MINER: Using ESP32-S3 hardware SHA accelerator (mbedtls_sha256)
 ```
 
 If you see "DISABLED", the configuration is not active and you'll be using software SHA.
@@ -42,25 +43,23 @@ If you see "DISABLED", the configuration is not active and you'll be using softw
 
 ### Implementation
 
-The `double_sha256()` function uses mbedTLS with a pre-allocated context:
+The `double_sha256()` function uses mbedTLS's direct SHA256 API:
 
 ```c
-void double_sha256(mbedtls_md_context_t* ctx, const uint8_t* data, size_t len, uint8_t* hash)
+#include "mbedtls/sha256.h"
+
+void double_sha256(const uint8_t* data, size_t len, uint8_t* hash)
 {
-    // First SHA256 - uses hardware accelerator when enabled
+    // First SHA256 - uses hardware accelerator automatically
     uint8_t temp[32];
-    mbedtls_md_starts(ctx);
-    mbedtls_md_update(ctx, data, len);
-    mbedtls_md_finish(ctx, temp);
+    mbedtls_sha256(data, len, temp, 0); // 0 = SHA256 (not SHA224)
     
-    // Second SHA256 - uses hardware accelerator when enabled
-    mbedtls_md_starts(ctx);
-    mbedtls_md_update(ctx, temp, 32);
-    mbedtls_md_finish(ctx, hash);
+    // Second SHA256 - uses hardware accelerator automatically
+    mbedtls_sha256(temp, 32, hash, 0);
 }
 ```
 
-**Performance Optimization**: The SHA context is initialized once at mining task startup and reused for all hashes. This eliminates malloc/free overhead in the critical mining loop.
+**Why This Works**: In ESP-IDF v5.4, `mbedtls_sha256()` automatically uses the ESP32-S3 hardware SHA peripheral when `CONFIG_MBEDTLS_HARDWARE_SHA=y` is set. No context management needed - the function handles everything internally.
 
 When `CONFIG_MBEDTLS_HARDWARE_SHA=y` is set, mbedTLS automatically routes SHA-256 operations through the ESP32-S3's hardware SHA peripheral instead of software implementation.
 
