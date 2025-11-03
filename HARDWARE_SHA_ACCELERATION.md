@@ -2,28 +2,15 @@
 
 ## Overview
 
-This project uses the ESP32-S3's built-in hardware SHA accelerator via the direct `esp_sha()` API for guaranteed hardware acceleration in Bitcoin mining.
+This project uses the ESP32-S3's built-in hardware SHA accelerator via mbedTLS with hardware acceleration enabled for Bitcoin mining performance.
 
 ## Implementation Approach
 
-This implementation uses ESP-IDF's native hardware SHA API (`esp_sha.h`) instead of mbedTLS abstraction layer:
+This implementation uses mbedTLS with ESP-IDF's hardware SHA acceleration:
 
-1. **Direct Hardware SHA API**: Uses `esp_sha()` which directly calls the hardware SHA peripheral - guaranteed hardware acceleration
-2. **Hardware CLZ Instruction**: Uses `__builtin_clz` for faster leading zero counting
-3. **No Heap Allocation**: Simple function calls with no context allocation overhead
-
-### Why Direct API Instead of mbedTLS?
-
-The previous approach using mbedTLS generic API (`mbedtls_md_*`) had issues:
-- Configuration complexity - hardware acceleration wasn't consistently enabled
-- Abstraction layer overhead reduced performance gains
-- Required pre-allocated context management
-
-The new approach using `esp_sha()`:
-- ✅ Guaranteed hardware acceleration - no configuration ambiguity
-- ✅ Lower overhead - direct hardware peripheral access
-- ✅ Simpler code - no context management needed
-- ✅ Better performance - bypasses mbedTLS abstraction
+1. **mbedTLS with Hardware SHA**: Uses `CONFIG_MBEDTLS_HARDWARE_SHA=y` to enable hardware acceleration
+2. **Pre-allocated Context**: Context initialized once at mining task startup to eliminate malloc/free overhead
+3. **Hardware CLZ Instruction**: Uses `__builtin_clz` for faster leading zero counting
 
 ### Performance Impact
 
@@ -34,11 +21,10 @@ Expected performance with hardware SHA:
 
 ## Configuration
 
-No special configuration needed! The `esp_sha()` API always uses hardware.
-
-For additional performance optimization, `sdkconfig.defaults` includes:
+Hardware SHA acceleration is enabled through `sdkconfig.defaults`:
 
 ```
+CONFIG_MBEDTLS_HARDWARE_SHA=y
 CONFIG_COMPILER_OPTIMIZATION_PERF=y
 ```
 
@@ -47,38 +33,34 @@ CONFIG_COMPILER_OPTIMIZATION_PERF=y
 When the device boots, check the serial monitor output:
 
 ```
-I (xxx) BTC_MINER: Hardware SHA acceleration: ACTIVE (using esp_sha API)
-I (xxx) BTC_MINER: Mining task started on core 0
-I (xxx) BTC_MINER: Using direct ESP32-S3 hardware SHA accelerator
+I (xxx) BTC_MINER: Hardware SHA acceleration: ENABLED
 ```
 
-These messages confirm hardware SHA is being used.
+If you see "DISABLED", the configuration is not active and you'll be using software SHA.
 
 ## Technical Details
 
 ### Implementation
 
-The `double_sha256()` function in `main/main.c` uses ESP-IDF's direct hardware SHA API:
+The `double_sha256()` function uses mbedTLS with a pre-allocated context:
 
 ```c
-#include "esp_sha.h"
-
-void double_sha256(const uint8_t* data, size_t len, uint8_t* hash)
+void double_sha256(mbedtls_md_context_t* ctx, const uint8_t* data, size_t len, uint8_t* hash)
 {
-    // First SHA256 using hardware accelerator
+    // First SHA256 - uses hardware accelerator when enabled
     uint8_t temp[32];
-    esp_sha(ESP_SHA2_256, data, len, temp);
+    mbedtls_md_starts(ctx);
+    mbedtls_md_update(ctx, data, len);
+    mbedtls_md_finish(ctx, temp);
     
-    // Second SHA256 using hardware accelerator
-    esp_sha(ESP_SHA2_256, temp, 32, hash);
+    // Second SHA256 - uses hardware accelerator when enabled
+    mbedtls_md_starts(ctx);
+    mbedtls_md_update(ctx, temp, 32);
+    mbedtls_md_finish(ctx, hash);
 }
 ```
 
-**Why This Works Better**:
-- `esp_sha()` directly accesses ESP32-S3 SHA peripheral hardware
-- No abstraction layer overhead like mbedTLS `mbedtls_md_*` functions
-- No context allocation or management needed
-- Guaranteed hardware acceleration - no configuration ambiguity
+**Performance Optimization**: The SHA context is initialized once at mining task startup and reused for all hashes. This eliminates malloc/free overhead in the critical mining loop.
 
 When `CONFIG_MBEDTLS_HARDWARE_SHA=y` is set, mbedTLS automatically routes SHA-256 operations through the ESP32-S3's hardware SHA peripheral instead of software implementation.
 
