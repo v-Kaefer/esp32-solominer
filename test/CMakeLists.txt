@@ -1,3 +1,7 @@
+cmake_minimum_required(VERSION 3.16)
+
+include($ENV{IDF_PATH}/tools/cmake/project.cmake)
+project(esp32_btc_miner_test)
 idf_component_register(
     SRCS "test_main.c"
          "test_mining.c"

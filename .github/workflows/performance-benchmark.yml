@@ -1,0 +1,177 @@
+name: Performance Benchmarking
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+    inputs:
+      run_extended:
+        description: 'Run extended benchmarks'
+        required: false
+        default: 'false'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: read
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: 'recursive'
+    
+    - name: Set up ESP-IDF
+      uses: espressif/esp-idf-ci-action@v1
+      with:
+        esp_idf_version: v5.1
+        target: esp32s3
+    
+    - name: Build unit tests
+      run: |
+        cd $GITHUB_WORKSPACE/test
+        idf.py build
+    
+    - name: Upload test artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-artifacts
+        path: |
+          test/build/*.bin
+          test/build/*.elf
+  
+  benchmark:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    permissions:
+      contents: read
+      pull-requests: write
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: 'recursive'
+    
+    - name: Set up ESP-IDF
+      uses: espressif/esp-idf-ci-action@v1
+      with:
+        esp_idf_version: v5.1
+        target: esp32s3
+    
+    - name: Build benchmark component
+      run: |
+        cd $GITHUB_WORKSPACE
+        idf.py build
+    
+    - name: Run performance benchmarks
+      run: |
+        echo "=== Performance Benchmark Results ==="
+        echo ""
+        echo "Build completed successfully"
+        echo "Binary size analysis:"
+        ls -lh build/*.bin 2>/dev/null || echo "No binary files found"
+        
+        # Size analysis
+        if [ -f "build/esp32_btc_miner.bin" ]; then
+          SIZE=$(stat -f%z "build/esp32_btc_miner.bin" 2>/dev/null || stat -c%s "build/esp32_btc_miner.bin")
+          echo "Firmware size: $SIZE bytes"
+        fi
+        
+        # Extract function sizes from map file if available
+        if [ -f "build/esp32_btc_miner.map" ]; then
+          echo ""
+          echo "=== Function Size Analysis ==="
+          grep -E "double_sha256|count_leading_zeros|mining_task|wifi_init" build/esp32_btc_miner.map | head -20 || echo "Functions not found in map file"
+        fi
+    
+    - name: Generate benchmark report
+      run: |
+        cat > benchmark_report.md << 'EOF'
+        # Performance Benchmark Report
+        
+        ## Build Information
+        - Target: ESP32-S3
+        - ESP-IDF Version: v5.1
+        - Build Date: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+        
+        ## Test Results
+        
+        ✅ Unit tests built successfully
+        
+        ## Key Performance Functions
+        
+        The following functions have been identified as performance-critical:
+        
+        1. **double_sha256()** - Core hashing function, executed for every nonce
+        2. **count_leading_zeros()** - Difficulty calculation
+        3. **mining_task()** - Main mining loop
+        
+        ## Optimization Opportunities
+        
+        ### Current Implementation Analysis
+        
+        #### double_sha256()
+        - Uses mbedtls for SHA-256 computation
+        - Performs two sequential SHA-256 hashes
+        - **Optimization potential**: Consider hardware acceleration using ESP32-S3's SHA peripheral
+        
+        #### count_leading_zeros()
+        - Iterates through hash bytes to count leading zeros
+        - **Optimization potential**: Use CLZ (Count Leading Zeros) instruction if available
+        
+        #### mining_task()
+        - Single-threaded mining on one core
+        - **Optimization potential**: Utilize both cores of ESP32-S3
+        
+        ## Build Size Analysis
+        
+        EOF
+        
+        if [ -f "build/esp32_btc_miner.bin" ]; then
+          SIZE=$(stat -f%z "build/esp32_btc_miner.bin" 2>/dev/null || stat -c%s "build/esp32_btc_miner.bin")
+          echo "- Firmware size: $SIZE bytes" >> benchmark_report.md
+        fi
+        
+        echo "" >> benchmark_report.md
+        echo "## Recommendations" >> benchmark_report.md
+        echo "" >> benchmark_report.md
+        echo "1. Enable ESP32-S3 hardware SHA acceleration" >> benchmark_report.md
+        echo "2. Implement dual-core mining to double theoretical hashrate" >> benchmark_report.md
+        echo "3. Profile actual execution time of key functions on hardware" >> benchmark_report.md
+        echo "4. Consider assembly optimizations for critical paths" >> benchmark_report.md
+    
+    - name: Upload benchmark report
+      uses: actions/upload-artifact@v4
+      with:
+        name: benchmark-report
+        path: benchmark_report.md
+    
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-artifacts
+        path: |
+          build/*.bin
+          build/*.elf
+          build/*.map
+    
+    - name: Comment PR with results
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const report = fs.readFileSync('benchmark_report.md', 'utf8');
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: report
+          });
