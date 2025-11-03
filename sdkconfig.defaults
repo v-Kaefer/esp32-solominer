@@ -1,7 +1,6 @@
-# Enable hardware SHA acceleration for ESP32-S3
-# This makes mbedTLS automatically use the ESP32-S3 SHA hardware accelerator
-CONFIG_MBEDTLS_HARDWARE_SHA=y
-
 # Enable compiler optimizations for mining performance
 # Use "Optimize for performance" instead of default "Debug" optimization
 CONFIG_COMPILER_OPTIMIZATION_PERF=y
+
+# Note: Hardware SHA acceleration is automatically used via esp_sha() API
+# No additional configuration needed - esp_sha() always uses hardware

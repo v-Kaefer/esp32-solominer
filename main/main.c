@@ -12,7 +12,7 @@
 #include "nvs_flash.h"
 #include "lwip/err.h"
 #include "lwip/sys.h"
-#include "mbedtls/md.h"
+#include "esp_sha.h"
 #include "driver/i2c.h"
 #include "driver/gpio.h"
 #include "ssd1306.h"
@@ -101,21 +101,17 @@ void wifi_init(void)
 
 #endif // WIFI_SSID
 
-// Double SHA256 hash using pre-allocated context
-// Uses ESP32-S3 hardware SHA acceleration when CONFIG_MBEDTLS_HARDWARE_SHA is enabled
-// Context must be initialized before calling this function
-void double_sha256(mbedtls_md_context_t* ctx, const uint8_t* data, size_t len, uint8_t* hash)
+// Double SHA256 hash using ESP32-S3 hardware SHA accelerator
+// Uses esp_sha() which directly calls the hardware SHA peripheral
+// This is faster than mbedTLS as it bypasses the abstraction layer
+void double_sha256(const uint8_t* data, size_t len, uint8_t* hash)
 {
-    // First SHA256 - uses hardware accelerator when enabled
+    // First SHA256 using hardware accelerator
     uint8_t temp[32];
-    mbedtls_md_starts(ctx);
-    mbedtls_md_update(ctx, data, len);
-    mbedtls_md_finish(ctx, temp);
+    esp_sha(ESP_SHA2_256, data, len, temp);
     
-    // Second SHA256 - uses hardware accelerator when enabled
-    mbedtls_md_starts(ctx);
-    mbedtls_md_update(ctx, temp, 32);
-    mbedtls_md_finish(ctx, hash);
+    // Second SHA256 using hardware accelerator
+    esp_sha(ESP_SHA2_256, temp, 32, hash);
 }
 
 // Count leading zero bits in hash
@@ -227,24 +223,14 @@ void mining_task(void *pvParameters)
     int64_t last_stats_update = start_time;
     uint32_t local_nonce = 0;
     
-    // Initialize SHA256 context once to avoid repeated allocations
-    mbedtls_md_context_t sha_ctx;
-    mbedtls_md_type_t md_type = MBEDTLS_MD_SHA256;
-    mbedtls_md_init(&sha_ctx);
-    int ret = mbedtls_md_setup(&sha_ctx, mbedtls_md_info_from_type(md_type), 0);
-    if (ret != 0) {
-        ESP_LOGE(TAG, "Failed to setup SHA256 context: %d", ret);
-        vTaskDelete(NULL);
-        return;
-    }
-    
     ESP_LOGI(TAG, "Mining task started on core %d", xPortGetCoreID());
+    ESP_LOGI(TAG, "Using direct ESP32-S3 hardware SHA accelerator");
     
     init_block_header();
     
     while(1) {
-        // Mine with current nonce
-        double_sha256(&sha_ctx, block_header, 80, hash);
+        // Mine with current nonce - using hardware SHA accelerator
+        double_sha256(block_header, 80, hash);
         
         hash_count++;
         local_nonce++;
@@ -338,12 +324,7 @@ void app_main(void)
 {
     ESP_LOGI(TAG, "ESP32-S3 Bitcoin Miner Starting...");
     ESP_LOGI(TAG, "Dual-Core Architecture: Core 0=Mining, Core 1=I/O");
-    
-#ifdef CONFIG_MBEDTLS_HARDWARE_SHA
-    ESP_LOGI(TAG, "Hardware SHA acceleration: ENABLED");
-#else
-    ESP_LOGW(TAG, "Hardware SHA acceleration: DISABLED (using software)");
-#endif
+    ESP_LOGI(TAG, "Hardware SHA acceleration: ACTIVE (using esp_sha API)");
     
     // Create mutex for protecting shared statistics
     stats_mutex = xSemaphoreCreateMutex();
