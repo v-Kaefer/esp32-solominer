@@ -145,6 +145,14 @@ All pull requests must pass:
 
 See our [pull request template](.github/pull_request_template.md) and [issue templates](.github/ISSUE_TEMPLATE/) for contribution guidelines.
 
+## Useful Resources
+
+### Solo Mining Statistics & Calculators
+- **[SoloChance.org](https://solochance.org)** - Solo mining probability calculator and statistics
+- **[SoloLuck.com](https://sololuck.com)** - Solo mining luck tracker and analysis
+
+These tools help you understand your chances of finding a block when solo mining and track the luck of solo miners across the network.
+
 ## License
 
 This is a learning project. Feel free to use and modify for educational purposes.
