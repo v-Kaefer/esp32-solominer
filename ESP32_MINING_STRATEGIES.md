@@ -543,6 +543,7 @@ SERVER -> CLIENT: Share acceptance
 - **solo.ckpool.org:** Dedicated solo mining
 - **Pros:** Keep full block reward if found
 - **Cons:** Extremely rare to find blocks
+- **Statistics Tools:** [SoloChance.org](https://solochance.org) for probability calculations, [SoloLuck.com](https://sololuck.com) for luck tracking
 
 **Standard Pools (Tiny Regular Payouts):**
 - **Braiins Pool:** Reliable, ESP32-friendly
@@ -950,6 +951,8 @@ ESP32 Bitcoin mining is fundamentally an educational and experimental endeavor, 
 - Probability per hash: 1 in 2^76 (approximately)
 - ESP32 chance: Once every few hundred thousand years
 - But... it's possible! (lottery mining)
+- **Calculate your odds:** Use [SoloChance.org](https://solochance.org) to see your probability
+- **Track network luck:** Visit [SoloLuck.com](https://sololuck.com) to monitor solo mining success
 
 **Pool Mining (standard pool):**
 - Difficulty: Pool-adjusted (much easier than solo)

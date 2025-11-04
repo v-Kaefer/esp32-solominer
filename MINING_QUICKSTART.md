@@ -136,6 +136,7 @@ float get_temp(void) {
 ```
 - Keep full reward if block found
 - Extremely rare to find blocks
+- **Useful tools:** [SoloChance.org](https://solochance.org) (probability calculator) and [SoloLuck.com](https://sololuck.com) (luck tracker)
 
 **Pool Mining (Regular Payouts):**
 ```c
