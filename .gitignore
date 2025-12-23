@@ -1,11 +1,16 @@
 build/
+test/build/
 sdkconfig
 sdkconfig.old
+test/sdkconfig
+test/sdkconfig.old
 .env
 .embold
 .qodo
 .vscode
 main/config.h
+benchmark_report.md
+*.benchmark
 # Python cache
 __pycache__/
 *.py[cod]
