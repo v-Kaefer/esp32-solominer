@@ -17,6 +17,8 @@
 #include "driver/gpio.h"
 #include "ssd1306.h"
 #include "driver/i2c_master.h"
+#include "stratum.h"
+#include "mining.h"
 #include "config.h"
 
 // I2C Configuration for OLED
@@ -36,6 +38,9 @@ static uint32_t best_difficulty = 0;
 static uint32_t nonce = 0;
 static uint8_t block_header[80];
 static float current_hashrate = 0.0f;
+static uint32_t shares_submitted = 0;
+static uint32_t shares_accepted = 0;
+static bool pool_connected = false;
 
 // Mutex for protecting shared statistics
 static SemaphoreHandle_t stats_mutex = NULL;
@@ -147,33 +152,6 @@ uint32_t count_leading_zeros(const uint8_t* hash)
     return zeros;
 }
 
-// Initialize block header with mock data
-void init_block_header(void)
-{
-    memset(block_header, 0, 80);
-    
-    // Version (bytes 0-3)
-    uint32_t version = 0x20000000;
-    memcpy(&block_header[0], &version, 4);
-    
-    // Previous block hash (bytes 4-35) - would be real data
-    // Merkle root (bytes 36-67) - would be real data
-    
-    // Timestamp (bytes 68-71)
-    uint32_t timestamp = (uint32_t)(xTaskGetTickCount() * portTICK_PERIOD_MS / 1000);
-    memcpy(&block_header[68], &timestamp, 4);
-    
-    // Bits/Difficulty target (bytes 72-75)
-    uint32_t bits = 0x1d00ffff; // Easier target for testing
-    memcpy(&block_header[72], &bits, 4);
-    
-    // Nonce (bytes 76-79) - will be incremented
-    nonce = 0;
-    memcpy(&block_header[76], &nonce, 4);
-    
-    ESP_LOGI(TAG, "Block header initialized");
-}
-
 // Update OLED display (called from display task on Core 1)
 void update_display(void)
 {
@@ -182,6 +160,8 @@ void update_display(void)
     uint32_t local_best_difficulty;
     uint32_t local_nonce;
     float local_hashrate;
+    uint32_t local_shares_accepted;
+    bool local_pool_connected;
     
     // Read shared statistics with mutex protection
     if (xSemaphoreTake(stats_mutex, pdMS_TO_TICKS(100)) == pdTRUE) {
@@ -189,6 +169,8 @@ void update_display(void)
         local_best_difficulty = best_difficulty;
         local_nonce = nonce;
         local_hashrate = current_hashrate;
+        local_shares_accepted = shares_accepted;
+        local_pool_connected = pool_connected;
         xSemaphoreGive(stats_mutex);
     } else {
         return; // Skip update if mutex not available
@@ -198,14 +180,20 @@ void update_display(void)
     
     // Title
     ssd1306_display_text(&dev, 0, "ESP32-S3 BTC Miner", 18, false);
-    ssd1306_display_text(&dev, 1, "------------------", 18, false);
+    
+    // Pool status
+    if (local_pool_connected) {
+        ssd1306_display_text(&dev, 1, "Pool: Connected", 15, false);
+    } else {
+        ssd1306_display_text(&dev, 1, "Pool: Connecting..", 18, false);
+    }
     
     // Hashrate
     snprintf(line, sizeof(line), "Rate: %.1f H/s", local_hashrate);
     ssd1306_display_text(&dev, 2, line, strlen(line), false);
     
-    // Total hashes
-    snprintf(line, sizeof(line), "Total: %llu", local_total_hashes);
+    // Shares
+    snprintf(line, sizeof(line), "Shares: %lu", local_shares_accepted);
     ssd1306_display_text(&dev, 3, line, strlen(line), false);
     
     // Best difficulty
@@ -225,6 +213,9 @@ void mining_task(void *pvParameters)
     int64_t start_time = esp_timer_get_time();
     int64_t last_stats_update = start_time;
     uint32_t local_nonce = 0;
+    uint32_t extranonce2 = 0;
+    mining_job_t current_mining_job;
+    bool have_job = false;
     
     // Initialize SHA256 context once to avoid repeated allocations
     mbedtls_md_context_t sha_ctx;
@@ -233,16 +224,62 @@ void mining_task(void *pvParameters)
     int ret = mbedtls_md_setup(&sha_ctx, mbedtls_md_info_from_type(md_type), 0);
     if (ret != 0) {
         ESP_LOGE(TAG, "Failed to setup SHA256 context: %d", ret);
-        vTaskDelete(NULL); // Delete this task on error
+        vTaskDelete(NULL);
         return;
     }
-    // Note: mbedtls_md_free() not called because this task runs indefinitely
     
     ESP_LOGI(TAG, "Mining task started on core %d", xPortGetCoreID());
     
-    init_block_header();
-    
     while(1) {
+        // Check if we have a new job from the pool
+        stratum_state_t state = stratum_get_state();
+        
+        if (state == STRATUM_AUTHORIZED) {
+            // Try to get new job
+            mining_job_t new_job;
+            if (stratum_get_job(&new_job) == ESP_OK) {
+                if (!have_job || strcmp(new_job.job_id, current_mining_job.job_id) != 0) {
+                    // New job received
+                    memcpy(&current_mining_job, &new_job, sizeof(mining_job_t));
+                    have_job = true;
+                    local_nonce = 0;
+                    ESP_LOGI(TAG, "New mining job received: %s", current_mining_job.job_id);
+                    
+                    if (current_mining_job.clean_jobs) {
+                        // Reset statistics on clean job
+                        extranonce2 = 0;
+                    }
+                }
+            }
+            
+            // Update pool connected status
+            if (xSemaphoreTake(stats_mutex, pdMS_TO_TICKS(10)) == pdTRUE) {
+                pool_connected = true;
+                xSemaphoreGive(stats_mutex);
+            }
+        } else {
+            // Not authorized yet, wait
+            if (xSemaphoreTake(stats_mutex, pdMS_TO_TICKS(10)) == pdTRUE) {
+                pool_connected = false;
+                xSemaphoreGive(stats_mutex);
+            }
+            vTaskDelay(pdMS_TO_TICKS(1000));
+            continue;
+        }
+        
+        if (!have_job) {
+            // No job yet, wait
+            vTaskDelay(pdMS_TO_TICKS(1000));
+            continue;
+        }
+        
+        // Build block header from job
+        if (mining_build_block_header(&current_mining_job, extranonce2, local_nonce, block_header) != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to build block header");
+            vTaskDelay(pdMS_TO_TICKS(1000));
+            continue;
+        }
+        
         // Mine with current nonce
         double_sha256(&sha_ctx, block_header, 80, hash);
         
@@ -252,7 +289,7 @@ void mining_task(void *pvParameters)
         // Check difficulty
         uint32_t difficulty = count_leading_zeros(hash);
         
-        // Check difficulty and update shared statistics with mutex protection
+        // Update best difficulty with mutex protection
         bool need_log = false;
         if (xSemaphoreTake(stats_mutex, pdMS_TO_TICKS(10)) == pdTRUE) {
             if (difficulty > best_difficulty) {
@@ -264,21 +301,33 @@ void mining_task(void *pvParameters)
         
         if (need_log) {
             ESP_LOGI(TAG, "New best difficulty: %lu leading zeros", difficulty);
-            ESP_LOGI(TAG, "Hash: %02x%02x%02x%02x...%02x%02x%02x%02x",
-                     hash[31], hash[30], hash[29], hash[28],
-                     hash[3], hash[2], hash[1], hash[0]);
         }
         
-        // Check if we found a valid block (need ~70 zeros for real Bitcoin)
-        if (difficulty >= 70) {
-            ESP_LOGI(TAG, "!!! BLOCK FOUND !!!");
-            // In a future enhancement, this could signal the display task
-            // to show a special "BLOCK FOUND" message
-            vTaskDelay(pdMS_TO_TICKS(10000));
+        // Check if we found a valid share (pool difficulty)
+        double pool_diff = stratum_get_difficulty();
+        uint32_t required_zeros = (uint32_t)(pool_diff * 32); // Approximate
+        
+        if (difficulty >= required_zeros && difficulty >= 32) {
+            ESP_LOGI(TAG, "!!! SHARE FOUND !!! Difficulty: %lu", difficulty);
+            
+            // Submit share to pool
+            if (stratum_submit_share(current_mining_job.job_id, extranonce2,
+                                     current_mining_job.ntime, local_nonce) == ESP_OK) {
+                ESP_LOGI(TAG, "Share submitted successfully");
+                
+                if (xSemaphoreTake(stats_mutex, pdMS_TO_TICKS(10)) == pdTRUE) {
+                    shares_submitted++;
+                    shares_accepted++; // Will be updated based on pool response
+                    xSemaphoreGive(stats_mutex);
+                }
+            }
         }
         
-        // Increment nonce in block header
-        memcpy(&block_header[76], &local_nonce, 4);
+        // Check for nonce overflow - move to next extranonce2
+        if (local_nonce == 0) {
+            extranonce2++;
+            ESP_LOGI(TAG, "Nonce overflow, moving to extranonce2: %lu", extranonce2);
+        }
         
         // Update shared statistics periodically (every 2 seconds)
         int64_t current_time = esp_timer_get_time();
@@ -393,10 +442,44 @@ void app_main(void)
     
     ssd1306_display_text(&dev, 4, "WiFi Connecting...", 18, false);
     vTaskDelay(pdMS_TO_TICKS(3000));
+    
+    // Initialize Stratum client
+    ESP_LOGI(TAG, "Initializing Stratum client...");
+    stratum_config_t stratum_config = {
+        .pool_url = POOL_URL,
+        .pool_port = POOL_PORT,
+        .wallet_address = WALLET_ADDRESS,
+        .worker_name = WORKER_NAME
+    };
+    
+    if (stratum_init(&stratum_config) != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to initialize Stratum client");
+    } else {
+        ESP_LOGI(TAG, "Stratum client initialized for %s:%d", POOL_URL, POOL_PORT);
+    }
+    
+    ssd1306_display_text(&dev, 4, "Pool: Connecting", 16, false);
+#else
+    ssd1306_display_text(&dev, 4, "WiFi: Disabled", 14, false);
+    ESP_LOGW(TAG, "WiFi not configured - mining will not connect to pool");
 #endif
     
     ssd1306_display_text(&dev, 5, "Starting tasks!", 15, false);
     vTaskDelay(pdMS_TO_TICKS(2000));
+    
+#ifdef WIFI_SSID
+    // Create Stratum client task on Core 1 (I/O core)
+    xTaskCreatePinnedToCore(
+        stratum_task,
+        "stratum_task",
+        8192,  // Larger stack for network operations
+        NULL,
+        4,  // Medium priority
+        NULL,
+        1   // Pin to Core 1 (I/O core)
+    );
+    ESP_LOGI(TAG, "Stratum client task created on Core 1");
+#endif
     
     // Create mining task on Core 0 for maximum SHA-256 performance
     // Core 0 is dedicated to compute-intensive mining operations
@@ -424,5 +507,5 @@ void app_main(void)
     
     ESP_LOGI(TAG, "Dual-core tasks created successfully");
     ESP_LOGI(TAG, "Core 0: Mining (SHA-256 compute)");
-    ESP_LOGI(TAG, "Core 1: Display/WiFi/I/O operations");
+    ESP_LOGI(TAG, "Core 1: Display/WiFi/Stratum/I/O operations");
 }
