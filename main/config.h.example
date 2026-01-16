@@ -12,4 +12,24 @@
 #define WIFI_PASS "your_wifi_password"
 #endif
 
+// Mining Pool Configuration
+#ifndef POOL_URL
+#define POOL_URL "solo.ckpool.org"  // Solo mining pool
+// Alternative pools:
+// #define POOL_URL "stratum.braiins.com"  // Braiins Pool
+// #define POOL_URL "stratum.slushpool.com"  // Slush Pool
+#endif
+
+#ifndef POOL_PORT
+#define POOL_PORT 3333
+#endif
+
+#ifndef WALLET_ADDRESS
+#define WALLET_ADDRESS "your_bitcoin_address_here"  // Replace with your BTC address
+#endif
+
+#ifndef WORKER_NAME
+#define WORKER_NAME "ESP32Miner"
+#endif
+
 #endif // CONFIG_H

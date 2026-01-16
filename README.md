@@ -22,11 +22,15 @@ This is a learning project focused on:
 
 **New to ESP32 Bitcoin mining? Start here:**
 
+- **[Getting Started with Real Mining](GETTING_STARTED.md)** - Complete setup guide for actual pool mining
 - **[Quick Start Guide](MINING_QUICKSTART.md)** - Get mining in 5 minutes
 - **[Dual-Core Architecture](DUAL_CORE_ARCHITECTURE.md)** - Understanding the modular dual-core design
 - **[Comprehensive Mining Strategies](ESP32_MINING_STRATEGIES.md)** - Deep dive into mining approaches, hardware optimization, and cooling requirements
 
 These guides cover:
+- Real mining pool configuration (Stratum V1)
+- WiFi and pool connectivity setup
+- Bitcoin wallet configuration
 - Dual-core modular architecture (Core 0: Mining, Core 1: I/O)
 - Multiple mining approaches (NerdMiner, NMMiner, LeafMiner)
 - Hardware specifications and cooling requirements
@@ -36,22 +40,30 @@ These guides cover:
 
 For a complete guide to all documentation in this repository, see **[Documentation Structure](DOCUMENTATION_STRUCTURE.md)**.
 
-## WiFi Configuration
+## WiFi and Mining Configuration
 
-To configure your WiFi credentials for local development:
+To configure your WiFi credentials and mining pool for actual mining:
 
 1. Copy the example configuration file:
    ```bash
    cp main/config.h.example main/config.h
    ```
 
-2. Edit `main/config.h` and update the WiFi credentials:
+2. Edit `main/config.h` and update your credentials:
    ```c
    #define WIFI_SSID "your_wifi_ssid"
    #define WIFI_PASS "your_wifi_password"
+   
+   // Mining pool configuration
+   #define POOL_URL "solo.ckpool.org"  // Solo mining pool
+   #define POOL_PORT 3333
+   #define WALLET_ADDRESS "your_bitcoin_address_here"
+   #define WORKER_NAME "ESP32Miner"
    ```
 
 3. The `config.h` file is gitignored to prevent accidentally committing your credentials.
+
+**See [GETTING_STARTED.md](GETTING_STARTED.md) for detailed configuration guide including pool selection and wallet setup.**
 
 **Note:** Never commit your `main/config.h` file with real credentials to version control.
 
